@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Custom Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+:root {
+  font-family: 'Inter', 'Noto Sans TC', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light;
+  color: rgba(55, 65, 81, 1);
+  background-color: rgba(249, 250, 251, 1);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#root {
+  width: 100%;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.schedule-grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.schedule-grid th,
+.schedule-grid td {
+  border: 1px solid #e5e7eb;
+  padding: 0.5rem;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.schedule-grid th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.schedule-grid .time-header {
+  background-color: #f3f4f6;
+  font-weight: 500;
+  min-width: 80px;
+}
+
+.grid-booking-card {
+  padding: 0.25rem;
+  color: white;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  text-align: left;
+  height: 100%;
+}
+
+/* Admin Toggle Switch */
+input:checked ~ .dot {
+  transform: translateX(100%);
+  background-color: #4A90E2;
+}
+input:checked ~ .block {
+    background-color: #7dd3fc;
+}
+.dot {
+    transition: transform 0.3s ease;
+} 

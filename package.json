@@ -1,0 +1,38 @@
+{
+  "name": "booking-system",
+  "version": "1.0.0",
+  "description": "AI-powered venue booking system",
+  "main": "server.cjs",
+  "type": "module",
+  "scripts": {
+    "start": "node server.cjs",
+    "dev": "concurrently \"node server.cjs\" \"npm run dev:client\"",
+    "dev:client": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dayjs": "^1.11.10",
+    "express": "^4.18.2",
+    "node-fetch": "^3.3.2",
+    "sqlite3": "^5.1.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.11",
+    "@types/react": "^18.2.15",
+    "@types/react-dom": "^18.2.7",
+    "@vitejs/plugin-react": "^4.0.3",
+    "autoprefixer": "^10.4.21",
+    "concurrently": "^8.2.0",
+    "postcss": "^8.5.6",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tailwindcss": "^4.1.11",
+    "vite": "^4.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
