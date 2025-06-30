@@ -37,8 +37,8 @@ const ScheduleGridComponent = ({ bookings, venues }) => {
         'bg-pink-500', 'bg-sky-500', 'bg-emerald-500', 'bg-fuchsia-500'
     ];
     const darkColors = [
-        'dark:bg-blue-700', 'dark:bg-green-700', 'dark:bg-purple-700', 'dark:bg-indigo-700',
-        'dark:bg-pink-700', 'dark:bg-sky-700', 'dark:bg-emerald-700', 'dark:bg-fuchsia-700'
+        'dark:bg-blue-800', 'dark:bg-green-800', 'dark:bg-purple-800', 'dark:bg-indigo-800',
+        'dark:bg-pink-800', 'dark:bg-sky-800', 'dark:bg-emerald-800', 'dark:bg-fuchsia-800'
     ];
     const index = Math.abs(hash) % colors.length;
     return `${colors[index]} ${darkColors[index]}`;
@@ -49,9 +49,9 @@ const ScheduleGridComponent = ({ bookings, venues }) => {
   }
   
   return (
-    <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+    <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900">
       <table className="min-w-full">
-        <thead className="bg-gray-50 dark:bg-gray-700/50 sticky top-0 z-10">
+        <thead className="bg-gray-50 dark:bg-black/20 sticky top-0 z-10">
           <tr>
             <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 w-24">時間</th>
             {venues.map(venue => (
@@ -59,10 +59,10 @@ const ScheduleGridComponent = ({ bookings, venues }) => {
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
+        <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
           {timeSlots.map((time, timeIndex) => (
             <tr key={time} className="divide-x divide-gray-200 dark:divide-gray-700">
-              <td className={`px-3 py-2 text-xs text-center text-gray-500 dark:text-gray-400 align-top h-16 ${timeIndex % 2 === 0 ? 'bg-gray-50/50 dark:bg-gray-900/20' : ''}`}>
+              <td className={`px-3 py-2 text-xs text-center text-gray-500 dark:text-gray-400 align-top h-16 ${timeIndex % 2 === 0 ? 'bg-gray-50/50 dark:bg-gray-950/40' : 'dark:bg-gray-900'}`}>
                 {time}
               </td>
               {venues.map(venue => {
@@ -80,7 +80,7 @@ const ScheduleGridComponent = ({ bookings, venues }) => {
                             }
                         }
                     }
-                    return isSpanned ? null : <td key={venue} className={`h-16 ${timeIndex % 2 === 0 ? 'bg-gray-50/50 dark:bg-gray-900/20' : ''}`}></td>;
+                    return isSpanned ? null : <td key={venue} className={`h-16 ${timeIndex % 2 === 0 ? 'bg-gray-50/50 dark:bg-gray-950/40' : 'dark:bg-gray-900'}`}></td>;
                 }
                 
                 const start = dayjs(`${booking.booking_date} ${booking.start_time}`);
@@ -92,10 +92,10 @@ const ScheduleGridComponent = ({ bookings, venues }) => {
                   <td key={venue} rowSpan={rowSpan} className="p-1 align-top relative" style={{ height: `${rowSpan * 4}rem`}}>
                      <div className={`p-2 rounded-lg text-white h-full flex flex-col justify-between shadow-md ${getBookingColor(booking.purpose)}`}>
                       <div>
-                        <p className="font-bold text-sm">{booking.purpose}</p>
-                        <p className="text-xs opacity-90">{booking.start_time} - {booking.end_time}</p>
+                        <p className="font-bold text-sm text-gray-100">{booking.purpose}</p>
+                        <p className="text-xs opacity-90 text-gray-200">{booking.start_time} - {booking.end_time}</p>
                       </div>
-                      <p className="text-xs font-medium text-right truncate" title={booking.person_in_charge}>{booking.person_in_charge}</p>
+                      <p className="text-xs font-medium text-right truncate text-gray-300" title={booking.person_in_charge}>{booking.person_in_charge}</p>
                     </div>
                   </td>
                 );

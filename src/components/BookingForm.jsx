@@ -138,7 +138,7 @@ const BookingFormComponent = ({ onBookingSuccess, config }) => {
 
   return (
     <div>
-      <div className="bg-white dark:bg-gray-900 dark:border dark:border-gray-700 shadow-xl rounded-2xl">
+      <div className="bg-white dark:bg-gray-950 dark:border dark:border-gray-800 shadow-xl rounded-2xl">
         <div className="p-6 md:p-10">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white mb-2">預約場地</h2>
           <p className="text-gray-500 dark:text-gray-400 mb-6 sm:mb-8">請填寫預約資訊，標示 * 為必填欄位。</p>
@@ -162,7 +162,7 @@ const BookingFormComponent = ({ onBookingSuccess, config }) => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">預約日期 *</label>
-              <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-black/20">
+              <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900">
                 <DateInputList
                   dates={dates}
                   onDateChange={handleDateChange}
@@ -193,7 +193,7 @@ const BookingFormComponent = ({ onBookingSuccess, config }) => {
                           className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
                               purposeType === p
                                   ? 'bg-blue-600 text-white'
-                                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'
+                                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
                           }`}>
                           {p}
                       </button>
@@ -220,9 +220,9 @@ const BookingFormComponent = ({ onBookingSuccess, config }) => {
         </div>
       </div>
 
-      {(errorFromHook || error) && <div className="mt-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg dark:bg-red-900/40 dark:border-red-500/30 dark:text-red-300">{errorFromHook || error}</div>}
+      {(errorFromHook || error) && <div className="mt-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg dark:bg-red-900/50 dark:border-red-500/50 dark:text-red-200">{errorFromHook || error}</div>}
       
-      {successFromHook && <div className="mt-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg dark:bg-green-900/40 dark:border-green-500/30 dark:text-green-300">{successFromHook}</div>}
+      {successFromHook && <div className="mt-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg dark:bg-green-900/50 dark:border-green-500/50 dark:text-green-200">{successFromHook}</div>}
 
       <AiAssistant
         status={availability.status}

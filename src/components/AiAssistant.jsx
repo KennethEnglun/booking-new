@@ -6,14 +6,14 @@ const AiAssistant = ({ status, conflictingBookings, isLoading, suggestions, isSu
   }
 
   let content;
-  let baseClasses = "mt-6 p-4 rounded-lg transition-all duration-300";
+  let baseClasses = "mt-6 p-4 rounded-lg transition-all duration-300 border";
   let statusClasses = "";
 
   if (isLoading) {
-    statusClasses = "bg-yellow-100 border border-yellow-400 text-yellow-800 dark:bg-yellow-900/40 dark:border-yellow-500/30 dark:text-yellow-300";
+    statusClasses = "bg-yellow-100 border-yellow-400 text-yellow-800 dark:bg-yellow-900/50 dark:border-yellow-500/50 dark:text-yellow-200";
     content = <p className="font-semibold">AI 正在檢查時段衝突...</p>;
   } else if (status === "conflict") {
-    statusClasses = "bg-orange-100 border border-orange-400 text-orange-800 dark:bg-orange-900/40 dark:border-orange-500/30 dark:text-orange-300";
+    statusClasses = "bg-orange-100 border-orange-400 text-orange-800 dark:bg-orange-900/50 dark:border-orange-500/50 dark:text-orange-200";
     content = (
       <div>
         <h3 className="font-bold text-lg mb-2">時段衝突</h3>
@@ -34,7 +34,7 @@ const AiAssistant = ({ status, conflictingBookings, isLoading, suggestions, isSu
                 <button
                   key={i}
                   onClick={() => onSuggestionClick(s.startTime, s.endTime)}
-                  className="px-3 py-1.5 text-sm bg-green-200 text-green-800 rounded-full hover:bg-green-300 dark:bg-green-800 dark:text-green-100 dark:hover:bg-green-700 transition-colors"
+                  className="px-3 py-1.5 text-sm bg-green-200 text-green-800 rounded-full hover:bg-green-300 dark:bg-green-500/40 dark:text-green-100 dark:hover:bg-green-500/60 transition-colors"
                 >
                   {s.startTime} - {s.endTime}
                 </button>
@@ -45,7 +45,7 @@ const AiAssistant = ({ status, conflictingBookings, isLoading, suggestions, isSu
       </div>
     );
   } else if (status === "available") {
-    statusClasses = "bg-green-100 border border-green-400 text-green-700 dark:bg-green-900/40 dark:border-green-500/30 dark:text-green-300";
+    statusClasses = "bg-green-100 border-green-400 text-green-700 dark:bg-green-900/50 dark:border-green-500/50 dark:text-green-200";
     content = (
       <div className="flex items-center">
         <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path></svg>

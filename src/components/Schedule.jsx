@@ -213,7 +213,7 @@ const ScheduleComponent = ({ isAdmin, config }) => {
       className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
         viewMode === mode
           ? 'bg-blue-600 text-white shadow-md'
-          : 'bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
+          : 'bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'
       }`}
     >
       {children}
@@ -224,13 +224,13 @@ const ScheduleComponent = ({ isAdmin, config }) => {
   if (error) return <div className="p-8 text-center text-red-500 dark:text-red-400">錯誤: {error}</div>;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
+    <div className="animate-fadeInUp">
       {showSuccess && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-pulse dark:bg-green-600">
            操作成功！
          </div>
       )}
-      <div className="bg-white dark:bg-gray-900 dark:border dark:border-gray-700 shadow-xl rounded-2xl p-6 md:p-10">
+      <div className="bg-white dark:bg-gray-950 dark:border dark:border-gray-800 shadow-xl rounded-2xl p-6 md:p-10">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white mb-4 sm:mb-0">預約總覽</h2>
           <div className="flex items-center space-x-2">
@@ -244,57 +244,90 @@ const ScheduleComponent = ({ isAdmin, config }) => {
           <div>
             {/* Admin Controls */}
             {isAdmin && (
-              <div className="mb-4 p-4 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-700/50 rounded-lg">
+              <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700/50 rounded-lg">
                 <h3 className="font-semibold text-gray-700 dark:text-gray-200 mb-3">管理員操作</h3>
                 <div className="flex flex-wrap items-center gap-2">
-                  <button onClick={handleSelectAll} className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">全選/取消</button>
-                  <button onClick={handleBatchDelete} disabled={selectedBookings.size === 0} className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 transition-colors">刪除選取</button>
-                  <button onClick={handleDeleteAll} className="px-3 py-1.5 text-sm bg-red-800 text-white rounded-md hover:bg-red-900 transition-colors">刪除全部</button>
-                  <button onClick={handleExportCsv} className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">導出 CSV</button>
+                  <button onClick={handleSelectAll} className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors dark:hover:bg-blue-800">全選/取消</button>
+                  <button onClick={handleBatchDelete} disabled={selectedBookings.size === 0} className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:bg-gray-400 dark:disabled:bg-gray-600 dark:hover:bg-red-800">刪除選取</button>
+                  <button onClick={handleDeleteAll} className="px-3 py-1.5 text-sm bg-red-800 text-white rounded-md hover:bg-red-900 transition-colors dark:bg-red-900 dark:hover:bg-red-950">刪除全部</button>
+                  <button onClick={handleExportCsv} className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors dark:hover:bg-green-800">導出 CSV</button>
                 </div>
               </div>
             )}
+            
             {/* Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-               <select onChange={(e) => setFilterVenue(e.target.value)} value={filterVenue} className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-600 dark:text-white">
-                  <option value="">所有場地</option>
-                  {venues.map(v => <option key={v} value={v}>{v}</option>)}
-                </select>
-                <select onChange={(e) => setFilterDate(e.target.value)} value={filterDate} className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-600 dark:text-white">
-                  <option value="">所有日期</option>
-                  {uniqueDates.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
+            <div className="flex flex-col sm:flex-row gap-4 mb-4">
+              <select onChange={(e) => setFilterVenue(e.target.value)} value={filterVenue}
+                className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                <option value="">所有場地</option>
+                {venues.map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
+              <select onChange={(e) => setFilterDate(e.target.value)} value={filterDate}
+                className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                <option value="">所有日期</option>
+                {uniqueDates.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
             </div>
-            {/* Bookings Table */}
+            
+            {/* Bookings List */}
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-800">
-                  <tr>
-                    {isAdmin && <th scope="col" className="p-4"><input type="checkbox" onChange={handleSelectAll} checked={selectedBookings.size === filteredBookings.length && filteredBookings.length > 0} className="h-4 w-4 rounded border-gray-300 dark:bg-gray-700 dark:border-gray-500 text-blue-600 focus:ring-blue-500"/></th>}
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">日期</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">時間</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">場地</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">用途</th>
-                    {isAdmin && <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">預約人</th>}
-                    {isAdmin && <th scope="col" className="relative px-6 py-3"><span className="sr-only">刪除</span></th>}
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800/50 divide-y divide-gray-200 dark:divide-gray-700">
-                  {Object.keys(groupedBookings).sort().map(date => (
-                    groupedBookings[date].map(booking => (
-                      <tr key={booking.id} className={`${selectedBookings.has(booking.id) ? 'bg-blue-50 dark:bg-blue-800/30' : ''}`}>
-                        {isAdmin && <td className="p-4"><input type="checkbox" checked={selectedBookings.has(booking.id)} onChange={() => handleSelectBooking(booking.id)} className="h-4 w-4 rounded border-gray-300 dark:bg-gray-700 dark:border-gray-500 text-blue-600 focus:ring-blue-500"/></td>}
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">{booking.booking_date}</td>
-                        <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.start_time} - {booking.end_time}</td>
-                        <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.venue}</td>
-                        <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.purpose}</td>
-                        {isAdmin && <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.person_in_charge}</td>}
-                        {isAdmin && <td className="px-6 py-4 text-right text-sm font-medium"><button onClick={() => handleDelete(booking.id)} className="text-red-600 hover:text-red-900 dark:text-red-500 dark:hover:text-red-400">刪除</button></td>}
-                      </tr>
-                    ))
-                  ))}
-                </tbody>
-              </table>
+              <div className="min-w-full align-middle">
+                {Object.keys(groupedBookings).length > 0 ? (
+                  Object.entries(groupedBookings).map(([date, bookingsOnDate]) => (
+                    <div key={date} className="mb-8">
+                      <div className="sticky top-20 bg-gray-100 dark:bg-gray-800 py-2 px-4 rounded-t-lg">
+                        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{dayjs(date).format("YYYY年MM月DD日 (dddd)")}</h3>
+                      </div>
+                      <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-b-lg dark:ring-gray-700">
+                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                          <thead className="bg-gray-50 dark:bg-black/20">
+                            <tr>
+                              {isAdmin && <th scope="col" className="relative px-6 py-3 w-12"><input type="checkbox" onChange={handleSelectAll} checked={selectedBookings.size === bookings.length && bookings.length > 0} className="rounded" /></th>}
+                              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">時間</th>
+                              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">場地</th>
+                              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">用途</th>
+                              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">預約人</th>
+                              {isAdmin && <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6"><span className="sr-only">刪除</span></th>}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-gray-900">
+                            {bookingsOnDate.map((booking) => (
+                              <tr key={booking.id} className={selectedBookings.has(booking.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}>
+                                {isAdmin && (
+                                  <td className="relative px-6 py-4 w-12">
+                                    <input
+                                      type="checkbox"
+                                      className="rounded"
+                                      checked={selectedBookings.has(booking.id)}
+                                      onChange={() => handleSelectBooking(booking.id)}
+                                    />
+                                  </td>
+                                )}
+                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.start_time} - {booking.end_time}</td>
+                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.venue}</td>
+                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.purpose}</td>
+                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.person_in_charge}</td>
+                                {isAdmin && (
+                                  <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                                    <button onClick={() => handleDelete(booking.id)} className="text-red-600 hover:text-red-900 dark:text-red-500 dark:hover:text-red-400">
+                                      刪除
+                                    </button>
+                                  </td>
+                                )}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-12">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-200">沒有符合的預約記錄</h3>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">請嘗試調整篩選條件或新增預約。</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -302,17 +335,21 @@ const ScheduleComponent = ({ isAdmin, config }) => {
         {/* Grid View */}
         {viewMode === 'grid' && (
           <div>
-            <div className="mb-4">
-              <label htmlFor="grid-date-picker" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">選擇日期</label>
+            <div className="flex flex-col sm:flex-row items-center gap-4 mb-4">
+              <label htmlFor="grid-date-select" className="text-sm font-medium text-gray-700 dark:text-gray-300">選擇日期</label>
               <input 
                 type="date"
-                id="grid-date-picker"
+                id="grid-date-select"
                 value={gridDate}
-                onChange={(e) => setGridDate(e.target.value)}
-                className="w-full md:w-auto px-4 py-2 border border-gray-300 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+                onChange={e => setGridDate(e.target.value)}
+                className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
               />
             </div>
-            <ScheduleGrid bookings={bookings.filter(b => b.booking_date === gridDate)} venues={venues} />
+            <ScheduleGrid 
+              key={gridDate} 
+              bookings={bookings.filter(b => b.booking_date === gridDate)}
+              venues={venues} 
+            />
           </div>
         )}
       </div>
