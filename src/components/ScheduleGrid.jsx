@@ -23,15 +23,9 @@ const ScheduleGridComponent = ({ bookings, venues }) => {
   const bookingMap = React.useMemo(() => {
     const map = new Map();
     bookings.forEach((booking) => {
-      const start = dayjs(`${booking.booking_date} ${booking.start_time}`);
-      const end = dayjs(`${booking.booking_date} ${booking.end_time}`);
-      let current = start;
-      while(current.isBefore(end)) {
-        const timeKey = current.format('HH:mm');
-        const key = `${booking.venue}-${timeKey}`;
-        map.set(key, booking);
-        current = current.add(SCHEDULE_GRID_SLOT_MINUTES, 'minute');
-      }
+      const timeKey = dayjs(`${booking.booking_date} ${booking.start_time}`).format('HH:mm');
+      const key = `${booking.venue}-${timeKey}`;
+      map.set(key, booking);
     });
     return map;
   }, [bookings]);
