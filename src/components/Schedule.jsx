@@ -289,6 +289,12 @@ const ScheduleComponent = ({ isAdmin, config }) => {
   const uniqueEventNames = useMemo(() => [...new Set(visibleBookings.map(b => b.event_name).filter(Boolean))].sort(), [visibleBookings]);
   const uniquePersonsInCharge = useMemo(() => [...new Set(visibleBookings.map(b => b.person_in_charge).filter(Boolean))].sort(), [visibleBookings]);
 
+  useEffect(() => {
+    if (uniqueDates.length > 0 && !uniqueDates.includes(gridDate)) {
+      setGridDate(uniqueDates[0]);
+    }
+  }, [uniqueDates, gridDate]);
+
   const ViewModeButton = ({ mode, children }) => (
     <button
       onClick={() => setViewMode(mode)}
@@ -472,17 +478,18 @@ const ScheduleComponent = ({ isAdmin, config }) => {
           <div>
             <div className="flex flex-col sm:flex-row items-center gap-4 mb-4">
               <label htmlFor="grid-date-select" className="text-sm font-medium text-gray-700">選擇日期</label>
-              <input 
-                type="date"
+              <select 
                 id="grid-date-select"
                 value={gridDate}
                 onChange={e => setGridDate(e.target.value)}
                 className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
-              />
+              >
+                {uniqueDates.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
             </div>
             <ScheduleGrid 
               key={gridDate} 
-              bookings={bookings.filter(b => b.booking_date === gridDate)}
+              bookings={filteredBookings.filter(b => b.booking_date === gridDate)}
               venues={venues} 
             />
           </div>
