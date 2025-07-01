@@ -34,6 +34,10 @@ db.serialize(() => {
     person_in_charge TEXT NOT NULL,
     venue TEXT NOT NULL,
     purpose TEXT,
+    event_name TEXT,
+    class_type TEXT,
+    pax TEXT,
+    remarks TEXT,
     booking_date TEXT NOT NULL,
     start_time TEXT NOT NULL,
     end_time TEXT NOT NULL,
@@ -242,76 +246,109 @@ app.post('/api/check-conflicts', (req, res) => {
 
 // 創建預約
 app.post('/api/bookings', (req, res) => {
-  const { venue, dates, startTime, endTime, purpose, personInCharge, currentUser } = req.body;
+  const { venue, dates, startTime, endTime, purpose, personInCharge, eventName, classType, pax, remarks, currentUser } = req.body;
 
-  const results = [];
-  let completed = 0;
+  if (!dates || !Array.isArray(dates) || dates.length === 0) {
+    return res.status(400).json({ success: false, message: '請提供有效的預約日期陣列。' });
+  }
 
-  dates.forEach((date, index) => {
-    if (dayjs(`${date} ${endTime}`).isSameOrBefore(dayjs(`${date} ${startTime}`))) {
-      results.push({ date, status: 'failed', reason: '結束時間必須晚於開始時間' });
-      completed++;
-      if (completed === dates.length) {
-        return res.json({ results });
-      }
-      return;
-    }
+  db.serialize(() => {
+    const results = [];
+    let completed = 0;
 
-    // 檢查衝突
-    const checkQuery = `SELECT * FROM bookings WHERE venue = ? AND booking_date = ?`;
+    const checkAndInsert = (date, callback) => {
+      db.get('BEGIN TRANSACTION', (err) => {
+        if (err) return callback(err);
+
+        const checkQuery = `SELECT * FROM bookings WHERE venue = ? AND booking_date = ?`;
+        db.all(checkQuery, [venue, date], (err, rows) => {
+          if (err) {
+            db.get('ROLLBACK');
+            return callback(err);
+          }
+
+          const newBookingStart = dayjs(`${date} ${startTime}`);
+          const newBookingEnd = dayjs(`${date} ${endTime}`);
+          const isConflict = rows.some(booking => {
+            const existingStart = dayjs(`${booking.booking_date} ${booking.start_time}`);
+            const existingEnd = dayjs(`${booking.booking_date} ${booking.end_time}`);
+            return newBookingStart.isBefore(existingEnd) && existingStart.isBefore(newBookingEnd);
+          });
+
+          if (isConflict) {
+            db.get('ROLLBACK');
+            return callback(null, { date, success: false, message: '時段衝突' });
+          }
+
+          const insertStmt = db.prepare(`
+            INSERT INTO bookings 
+              (user_id, person_in_charge, venue, purpose, event_name, class_type, pax, remarks, booking_date, start_time, end_time, username) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `);
+          
+          const bookingUsername = personInCharge; 
+
+          insertStmt.run(
+            'user-1', personInCharge, venue, purpose, eventName, classType, pax, remarks, date, startTime, endTime, bookingUsername, 
+            function(err) {
+              if (err) {
+                db.get('ROLLBACK');
+                return callback(err);
+              }
+              db.get('COMMIT', (commitErr) => {
+                if(commitErr) return callback(commitErr);
+                callback(null, { date, success: true, bookingId: this.lastID });
+              });
+            }
+          );
+          insertStmt.finalize();
+        });
+      });
+    };
     
-    db.all(checkQuery, [venue, date], (err, existingBookings) => {
-      if (err) {
-        results.push({ date, status: 'failed', reason: '系統錯誤' });
-        completed++;
-        if (completed === dates.length) {
-          return res.json({ results });
-        }
-        return;
-      }
-
-      const newBookingStart = dayjs(`${date} ${startTime}`);
-      const newBookingEnd = dayjs(`${date} ${endTime}`);
-
-      const isConflict = existingBookings.some(booking => {
-        const existingStart = dayjs(`${booking.booking_date} ${booking.start_time}`);
-        const existingEnd = dayjs(`${booking.booking_date} ${booking.end_time}`);
-        return newBookingStart.isBefore(existingEnd) && existingStart.isBefore(newBookingEnd);
-      });
-
-      if (isConflict) {
-        results.push({ date, status: 'failed', reason: '時段已被預約' });
-        completed++;
-        if (completed === dates.length) {
-          return res.json({ results });
-        }
-        return;
-      }
-
-      // 創建預約
-      const insertQuery = `INSERT INTO bookings (user_id, person_in_charge, venue, purpose, booking_date, start_time, end_time, username) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-      
-      db.run(insertQuery, [currentUser.id, personInCharge, venue, purpose || '未提供', date, startTime, endTime, currentUser.username], function(err) {
-        if (err) {
-          results.push({ date, status: 'failed', reason: '系統錯誤' });
-        } else {
-          results.push({ date, status: 'success', booking: { id: this.lastID } });
-        }
-        
-        completed++;
-        if (completed === dates.length) {
-          return res.json({ results });
-        }
-      });
+    dates.forEach(date => {
+        checkAndInsert(date, (err, result) => {
+            if(err) {
+                results.push({ date, success: false, message: `伺服器錯誤: ${err.message}`});
+            } else {
+                results.push(result);
+            }
+            
+            completed++;
+            if(completed === dates.length) {
+                const isAllSuccess = results.every(r => r.success);
+                res.status(isAllSuccess ? 201 : 409).json({
+                    success: isAllSuccess,
+                    message: isAllSuccess ? '所有預約均已成功' : '部分預約因衝突而失敗',
+                    details: results
+                });
+            }
+        });
     });
   });
 });
 
 // 獲取所有預約
 app.get('/api/bookings', (req, res) => {
-  const query = `SELECT * FROM bookings ORDER BY booking_date ASC, start_time ASC`;
-  
-  db.all(query, [], (err, bookings) => {
+  const { startDate, endDate } = req.query;
+
+  let query = "SELECT * FROM bookings";
+  const params = [];
+
+  if (startDate && endDate) {
+    query += " WHERE booking_date BETWEEN ? AND ?";
+    params.push(startDate, endDate);
+  } else if (startDate) {
+    query += " WHERE booking_date >= ?";
+    params.push(startDate);
+  } else if (endDate) {
+    query += " WHERE booking_date <= ?";
+    params.push(endDate);
+  }
+
+  query += " ORDER BY booking_date ASC, start_time ASC";
+
+  db.all(query, params, (err, bookings) => {
     if (err) {
       console.error(err);
       return res.status(500).json({ error: 'Database error' });

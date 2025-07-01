@@ -14,6 +14,10 @@ const BookingFormComponent = ({ onBookingSuccess, config }) => {
   const [purposeType, setPurposeType] = useState("");
   const [customPurpose, setCustomPurpose] = useState("");
   const [personInCharge, setPersonInCharge] = useState("");
+  const [eventName, setEventName] = useState("");
+  const [classType, setClassType] = useState("");
+  const [pax, setPax] = useState("");
+  const [remarks, setRemarks] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -68,6 +72,10 @@ const BookingFormComponent = ({ onBookingSuccess, config }) => {
       setPurpose("");
       setPurposeType("");
       setCustomPurpose("");
+      setEventName("");
+      setClassType("");
+      setPax("");
+      setRemarks("");
     }
   }, [successFromHook]);
 
@@ -158,7 +166,11 @@ const BookingFormComponent = ({ onBookingSuccess, config }) => {
       startTime,
       endTime,
       purpose: purpose.trim() || "未提供",
-      personInCharge
+      personInCharge,
+      eventName: eventName.trim(),
+      classType: classType.trim(),
+      pax: pax.trim(),
+      remarks: remarks.trim()
     };
 
     await submitBooking(bookingData);
@@ -277,6 +289,25 @@ const BookingFormComponent = ({ onBookingSuccess, config }) => {
                   className="mt-2 w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
                 />
               )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <div>
+                    <label htmlFor="eventName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">活動名稱</label>
+                    <input type="text" id="eventName" value={eventName} onChange={(e) => setEventName(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"/>
+                </div>
+                <div>
+                    <label htmlFor="classType" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">班別</label>
+                    <input type="text" id="classType" value={classType} onChange={(e) => setClassType(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"/>
+                </div>
+                <div>
+                    <label htmlFor="pax" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">人數</label>
+                    <input type="number" id="pax" value={pax} onChange={(e) => setPax(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"/>
+                </div>
+                <div>
+                    <label htmlFor="remarks" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">備注</label>
+                    <input type="text" id="remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"/>
+                </div>
             </div>
 
             <div className="pt-4 text-center">

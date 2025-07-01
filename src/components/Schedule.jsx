@@ -93,7 +93,7 @@ const ScheduleComponent = ({ isAdmin, config }) => {
       return;
     }
 
-    const headers = ["ID", "場地", "用途", "負責人", "預約日期", "開始時間", "結束時間", "創建時間"];
+    const headers = ["ID", "場地", "用途", "活動名稱", "班別", "人數", "備注", "負責人", "預約日期", "開始時間", "結束時間", "創建時間"];
     const csvRows = [headers.join(',')];
 
     // 導出所有預約記錄
@@ -102,6 +102,10 @@ const ScheduleComponent = ({ isAdmin, config }) => {
             booking.id,
             `"${(booking.venue || '').replace(/"/g, '""')}"`,
             `"${(booking.purpose || '').replace(/"/g, '""')}"`,
+            `"${(booking.event_name || '').replace(/"/g, '""')}"`,
+            `"${(booking.class_type || '').replace(/"/g, '""')}"`,
+            `"${(booking.pax || '').replace(/"/g, '""')}"`,
+            `"${(booking.remarks || '').replace(/"/g, '""')}"`,
             `"${(booking.person_in_charge || '').replace(/"/g, '""')}"`,
             booking.booking_date,
             booking.start_time,
@@ -280,6 +284,10 @@ const ScheduleComponent = ({ isAdmin, config }) => {
                           <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">時間</th>
                           <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">場地</th>
                           <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">用途</th>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">活動名稱</th>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">班別</th>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">人數</th>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">備注</th>
                           <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">預約人</th>
                           {isAdmin && <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6"><span className="sr-only">刪除</span></th>}
                         </tr>
@@ -289,7 +297,7 @@ const ScheduleComponent = ({ isAdmin, config }) => {
                           Object.entries(groupedBookings).map(([date, bookingsOnDate]) => (
                             <React.Fragment key={date}>
                               <tr className="bg-gray-100 dark:bg-gray-800">
-                                <td colSpan={isAdmin ? 5 : 4} className="px-4 py-2 text-sm font-semibold text-gray-900 dark:text-gray-200">
+                                <td colSpan={isAdmin ? 9 : 8} className="px-4 py-2 text-sm font-semibold text-gray-900 dark:text-gray-200">
                                   {dayjs(date).format("YYYY年MM月DD日 (dddd)")}
                                 </td>
                               </tr>
@@ -308,6 +316,10 @@ const ScheduleComponent = ({ isAdmin, config }) => {
                                   <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.start_time} - {booking.end_time}</td>
                                   <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.venue}</td>
                                   <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.purpose}</td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.event_name}</td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.class_type}</td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.pax}</td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.remarks}</td>
                                   <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.person_in_charge}</td>
                                   {isAdmin && (
                                     <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
@@ -322,7 +334,7 @@ const ScheduleComponent = ({ isAdmin, config }) => {
                           ))
                         ) : (
                           <tr>
-                            <td colSpan={isAdmin ? 5 : 4} className="text-center py-12">
+                            <td colSpan={isAdmin ? 9 : 8} className="text-center py-12">
                                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-200">沒有符合的預約記錄</h3>
                                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">請嘗試調整篩選條件或新增預約。</p>
                             </td>
