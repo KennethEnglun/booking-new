@@ -245,87 +245,95 @@ app.post('/api/check-conflicts', (req, res) => {
 });
 
 // 創建預約
-app.post('/api/bookings', (req, res) => {
+app.post('/api/bookings', async (req, res) => {
   const { venue, dates, startTime, endTime, purpose, personInCharge, eventName, classType, pax, remarks, currentUser } = req.body;
 
   if (!dates || !Array.isArray(dates) || dates.length === 0) {
     return res.status(400).json({ success: false, message: '請提供有效的預約日期陣列。' });
   }
 
-  db.serialize(() => {
-    const results = [];
-    let completed = 0;
+  const results = {
+    success: [],
+    failed: []
+  };
 
-    const checkAndInsert = (date, callback) => {
-      db.get('BEGIN TRANSACTION', (err) => {
-        if (err) return callback(err);
+  const processBooking = (date) => new Promise((resolve, reject) => {
+    db.serialize(() => {
+      db.run('BEGIN TRANSACTION');
 
-        const checkQuery = `SELECT * FROM bookings WHERE venue = ? AND booking_date = ?`;
-        db.all(checkQuery, [venue, date], (err, rows) => {
+      const checkQuery = `SELECT * FROM bookings WHERE venue = ? AND booking_date = ? AND NOT (? <= start_time OR ? >= end_time)`;
+      db.all(checkQuery, [venue, date, endTime, startTime], (err, rows) => {
+        if (err) {
+          db.run('ROLLBACK');
+          return reject(new Error(err.message));
+        }
+
+        if (rows.length > 0) {
+          db.run('ROLLBACK');
+          return resolve({ date, success: false, message: '時間衝突' });
+        }
+        
+        const insertQuery = `INSERT INTO bookings (user_id, person_in_charge, venue, purpose, event_name, class_type, pax, remarks, booking_date, start_time, end_time, username) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        const params = [
+          currentUser?.id || 'user-1',
+          personInCharge,
+          venue,
+          purpose,
+          eventName,
+          classType,
+          pax,
+          remarks,
+          date,
+          startTime,
+          endTime,
+          currentUser?.username || '測試用戶'
+        ];
+
+        db.run(insertQuery, params, function(err) {
           if (err) {
-            db.get('ROLLBACK');
-            return callback(err);
+            db.run('ROLLBACK');
+            return reject(new Error(err.message));
           }
-
-          const newBookingStart = dayjs(`${date} ${startTime}`);
-          const newBookingEnd = dayjs(`${date} ${endTime}`);
-          const isConflict = rows.some(booking => {
-            const existingStart = dayjs(`${booking.booking_date} ${booking.start_time}`);
-            const existingEnd = dayjs(`${booking.booking_date} ${booking.end_time}`);
-            return newBookingStart.isBefore(existingEnd) && existingStart.isBefore(newBookingEnd);
-          });
-
-          if (isConflict) {
-            db.get('ROLLBACK');
-            return callback(null, { date, success: false, message: '時段衝突' });
-          }
-
-          const insertStmt = db.prepare(`
-            INSERT INTO bookings 
-              (user_id, person_in_charge, venue, purpose, event_name, class_type, pax, remarks, booking_date, start_time, end_time, username) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `);
-          
-          const bookingUsername = personInCharge; 
-
-          insertStmt.run(
-            'user-1', personInCharge, venue, purpose, eventName, classType, pax, remarks, date, startTime, endTime, bookingUsername, 
-            function(err) {
-              if (err) {
-                db.get('ROLLBACK');
-                return callback(err);
-              }
-              db.get('COMMIT', (commitErr) => {
-                if(commitErr) return callback(commitErr);
-                callback(null, { date, success: true, bookingId: this.lastID });
-              });
-            }
-          );
-          insertStmt.finalize();
+          db.run('COMMIT');
+          resolve({ date, success: true, bookingId: this.lastID });
         });
       });
-    };
-    
-    dates.forEach(date => {
-        checkAndInsert(date, (err, result) => {
-            if(err) {
-                results.push({ date, success: false, message: `伺服器錯誤: ${err.message}`});
-            } else {
-                results.push(result);
-            }
-            
-            completed++;
-            if(completed === dates.length) {
-                const isAllSuccess = results.every(r => r.success);
-                res.status(isAllSuccess ? 201 : 409).json({
-                    success: isAllSuccess,
-                    message: isAllSuccess ? '所有預約均已成功' : '部分預約因衝突而失敗',
-                    details: results
-                });
-            }
-        });
     });
   });
+
+  try {
+    const allPromises = dates.map(date => processBooking(date));
+    const allResults = await Promise.all(allPromises);
+
+    allResults.forEach(result => {
+      if (result.success) {
+        results.success.push(result);
+      } else {
+        results.failed.push(result);
+      }
+    });
+
+    if (results.failed.length > 0) {
+      if (results.success.length > 0) {
+        // 部分成功
+        const failedDates = results.failed.map(f => f.date).join(', ');
+        return res.status(207).json({ 
+            success: false, 
+            message: `部分預約成功，但日期 ${failedDates} 因衝突或其他原因失敗。`, 
+            details: results 
+        });
+      } else {
+        // 全部失敗
+        return res.status(409).json({ success: false, message: '所有預約均因時間衝突而失敗。', details: results });
+      }
+    } else {
+      // 全部成功
+      res.status(201).json({ success: true, message: '所有預約均已成功建立！', details: results });
+    }
+
+  } catch (error) {
+    res.status(500).json({ success: false, message: `伺服器內部錯誤: ${error.message}` });
+  }
 });
 
 // 獲取所有預約
