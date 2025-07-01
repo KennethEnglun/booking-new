@@ -272,61 +272,65 @@ const ScheduleComponent = ({ isAdmin, config }) => {
             {/* Bookings List */}
             <div className="overflow-x-auto">
               <div className="min-w-full align-middle">
-                {Object.keys(groupedBookings).length > 0 ? (
-                  Object.entries(groupedBookings).map(([date, bookingsOnDate]) => (
-                    <div key={date} className="mb-8">
-                      <div className="sticky top-20 bg-gray-100 dark:bg-gray-800 py-2 px-4 rounded-t-lg">
-                        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{dayjs(date).format("YYYY年MM月DD日 (dddd)")}</h3>
-                      </div>
-                      <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-b-lg dark:ring-gray-700">
-                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                          <thead className="bg-gray-50 dark:bg-black/20">
-                            <tr>
-                              {isAdmin && <th scope="col" className="relative px-6 py-3 w-12"><input type="checkbox" onChange={handleSelectAll} checked={selectedBookings.size === bookings.length && bookings.length > 0} className="rounded" /></th>}
-                              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">時間</th>
-                              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">場地</th>
-                              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">用途</th>
-                              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">預約人</th>
-                              {isAdmin && <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6"><span className="sr-only">刪除</span></th>}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-gray-900">
-                            {bookingsOnDate.map((booking) => (
-                              <tr key={booking.id} className={selectedBookings.has(booking.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}>
-                                {isAdmin && (
-                                  <td className="relative px-6 py-4 w-12">
-                                    <input
-                                      type="checkbox"
-                                      className="rounded"
-                                      checked={selectedBookings.has(booking.id)}
-                                      onChange={() => handleSelectBooking(booking.id)}
-                                    />
-                                  </td>
-                                )}
-                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.start_time} - {booking.end_time}</td>
-                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.venue}</td>
-                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.purpose}</td>
-                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.person_in_charge}</td>
-                                {isAdmin && (
-                                  <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                                    <button onClick={() => handleDelete(booking.id)} className="text-red-600 hover:text-red-900 dark:text-red-500 dark:hover:text-red-400">
-                                      刪除
-                                    </button>
-                                  </td>
-                                )}
+                 <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg dark:ring-gray-700">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                      <thead className="bg-gray-50 dark:bg-black/20">
+                        <tr>
+                          {isAdmin && <th scope="col" className="relative px-6 py-3 w-12"><input type="checkbox" onChange={handleSelectAll} checked={selectedBookings.size === bookings.length && bookings.length > 0} className="rounded" /></th>}
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">時間</th>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">場地</th>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">用途</th>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">預約人</th>
+                          {isAdmin && <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6"><span className="sr-only">刪除</span></th>}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-gray-900">
+                        {Object.keys(groupedBookings).length > 0 ? (
+                          Object.entries(groupedBookings).map(([date, bookingsOnDate]) => (
+                            <React.Fragment key={date}>
+                              <tr className="bg-gray-100 dark:bg-gray-800">
+                                <td colSpan={isAdmin ? 5 : 4} className="px-4 py-2 text-sm font-semibold text-gray-900 dark:text-gray-200">
+                                  {dayjs(date).format("YYYY年MM月DD日 (dddd)")}
+                                </td>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-12">
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-200">沒有符合的預約記錄</h3>
-                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">請嘗試調整篩選條件或新增預約。</p>
+                              {bookingsOnDate.map((booking) => (
+                                <tr key={booking.id} className={selectedBookings.has(booking.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}>
+                                  {isAdmin && (
+                                    <td className="relative px-6 py-4 w-12">
+                                      <input
+                                        type="checkbox"
+                                        className="rounded"
+                                        checked={selectedBookings.has(booking.id)}
+                                        onChange={() => handleSelectBooking(booking.id)}
+                                      />
+                                    </td>
+                                  )}
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.start_time} - {booking.end_time}</td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.venue}</td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.purpose}</td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.person_in_charge}</td>
+                                  {isAdmin && (
+                                    <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                                      <button onClick={() => handleDelete(booking.id)} className="text-red-600 hover:text-red-900 dark:text-red-500 dark:hover:text-red-400">
+                                        刪除
+                                      </button>
+                                    </td>
+                                  )}
+                                </tr>
+                              ))}
+                            </React.Fragment>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={isAdmin ? 5 : 4} className="text-center py-12">
+                               <h3 className="text-lg font-medium text-gray-900 dark:text-gray-200">沒有符合的預約記錄</h3>
+                               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">請嘗試調整篩選條件或新增預約。</p>
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
                   </div>
-                )}
               </div>
             </div>
           </div>

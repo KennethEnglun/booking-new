@@ -58,7 +58,6 @@ function App() {
   const [activeTab, setActiveTab] = useState("booking");
   const [config, setConfig] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [theme, setTheme] = useState('dark');
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   
   const appTitle = "LPMS場地預約系統";
@@ -70,14 +69,11 @@ function App() {
       .then(res => res.json())
       .then(data => setConfig(data))
       .catch(err => console.error('Failed to load config:', err));
-  }, []);
-
-  useEffect(() => {
+    
     const root = window.document.documentElement;
-    root.classList.remove(theme === 'dark' ? 'light' : 'dark');
-    root.classList.add(theme);
-    localStorage.setItem('theme', theme);
-  }, [theme]);
+    root.classList.add('dark');
+    localStorage.setItem('theme', 'dark');
+  }, []);
 
   const handleAdminLoginSuccess = () => {
     setIsAdmin(true);
@@ -90,10 +86,6 @@ function App() {
 
   const handleBookingSuccess = () => {
     setActiveTab("schedule");
-  };
-
-  const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'dark' ? 'light' : 'dark');
   };
 
   if (!config) {
@@ -131,9 +123,6 @@ function App() {
                     <p className="text-xs text-gray-500 dark:text-gray-400">{appSubtitle}</p>
                 </div>
                  <div className="flex items-center space-x-4">
-                    <button onClick={toggleTheme} className="w-10 h-10 flex justify-center items-center rounded-full text-lg text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800">
-                      {theme === 'dark' ? '☀️' : '🌙'}
-                    </button>
                     {isAdmin ? (
                        <button onClick={handleAdminLogout} className="px-3 py-1.5 text-sm rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors">登出管理員</button>
                     ) : (

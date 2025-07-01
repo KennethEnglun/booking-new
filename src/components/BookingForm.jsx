@@ -18,6 +18,10 @@ const BookingFormComponent = ({ onBookingSuccess, config }) => {
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringStartDate, setRecurringStartDate] = useState(dayjs().format("YYYY-MM-DD"));
+  const [recurringEndDate, setRecurringEndDate] = useState(dayjs().add(4, 'week').format("YYYY-MM-DD"));
+  
   const personInChargePlaceholder = "請輸入負責人姓名";
   const purposePlaceholder = "請填寫其他用途";
   
@@ -104,6 +108,30 @@ const BookingFormComponent = ({ onBookingSuccess, config }) => {
     }
   };
 
+  const generateWeeklyDates = () => {
+    const start = dayjs(recurringStartDate);
+    const end = dayjs(recurringEndDate);
+    if (!start.isValid() || !end.isValid() || start.isAfter(end)) {
+      setSubmitError("重複預約的開始或結束日期無效。");
+      return;
+    }
+
+    const newDates = [];
+    let current = start;
+    while (current.isSameOrBefore(end)) {
+      newDates.push(current.format("YYYY-MM-DD"));
+      current = current.add(7, 'day');
+    }
+    
+    if (newDates.length > 20) {
+        setSubmitError("重複預約產生的日期不能超過20天。");
+        return;
+    }
+
+    setDates(newDates);
+    setSubmitError("");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError("");
@@ -162,13 +190,45 @@ const BookingFormComponent = ({ onBookingSuccess, config }) => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">預約日期 *</label>
-              <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900">
-                <DateInputList
-                  dates={dates}
-                  onDateChange={handleDateChange}
-                  onAddDate={handleAddDate}
-                  onRemoveDate={handleRemoveDate}
-                />
+              <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 space-y-4">
+                <div className="flex items-center">
+                    <input type="checkbox" id="isRecurring" checked={isRecurring} onChange={(e) => setIsRecurring(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600" />
+                    <label htmlFor="isRecurring" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">啟用每週重複預約</label>
+                </div>
+
+                {isRecurring ? (
+                  <div className="p-4 bg-gray-100 dark:bg-black/20 rounded-lg space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">開始日期</label>
+                              <input type="date" value={recurringStartDate} onChange={e => setRecurringStartDate(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600" />
+                          </div>
+                          <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">結束日期</label>
+                              <input type="date" value={recurringEndDate} onChange={e => setRecurringEndDate(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600" />
+                          </div>
+                      </div>
+                      <button type="button" onClick={generateWeeklyDates} className="w-full px-4 py-2 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 transition-colors">產生重複日期</button>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">注意：這將會覆蓋下方所有已選的日期。</p>
+                  </div>
+                ) : (
+                  <DateInputList
+                    dates={dates}
+                    onDateChange={handleDateChange}
+                    onAddDate={handleAddDate}
+                    onRemoveDate={handleRemoveDate}
+                  />
+                )}
+                 {isRecurring && (
+                   <div>
+                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">已產生的日期 ({dates.length}天):</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {dates.map(date => (
+                          <span key={date} className="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-xs rounded-full">{date}</span>
+                        ))}
+                      </div>
+                   </div>
+                 )}
               </div>
             </div>
             
@@ -184,6 +244,15 @@ const BookingFormComponent = ({ onBookingSuccess, config }) => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"/>
               </div>
             </div>
+
+            <AiAssistant
+                status={availability.status}
+                conflictingBookings={availability.conflictingBookings}
+                isLoading={availability.isLoading}
+                suggestions={availability.suggestions}
+                isSuggesting={availability.isSuggesting}
+                onSuggestionClick={handleSuggestionClick}
+            />
             
             <div>
               <label htmlFor="purpose" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">用途 *</label>
@@ -223,15 +292,6 @@ const BookingFormComponent = ({ onBookingSuccess, config }) => {
       {(errorFromHook || error) && <div className="mt-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg dark:bg-red-900/50 dark:border-red-500/50 dark:text-red-200">{errorFromHook || error}</div>}
       
       {successFromHook && <div className="mt-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg dark:bg-green-900/50 dark:border-green-500/50 dark:text-green-200">{successFromHook}</div>}
-
-      <AiAssistant
-        status={availability.status}
-        conflictingBookings={availability.conflictingBookings}
-        isLoading={availability.isLoading}
-        suggestions={availability.suggestions}
-        isSuggesting={availability.isSuggesting}
-        onSuggestionClick={handleSuggestionClick}
-      />
 
     </div>
   );

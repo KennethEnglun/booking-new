@@ -1,3 +1,3 @@
-export const SCHEDULE_GRID_START_TIME = "08:00";
-export const SCHEDULE_GRID_END_TIME = "22:00";
+export const SCHEDULE_GRID_START_TIME = "07:30";
+export const SCHEDULE_GRID_END_TIME = "18:00";
 export const SCHEDULE_GRID_SLOT_MINUTES = 30; 
