@@ -255,82 +255,61 @@ app.post('/api/bookings', async (req, res) => {
     failed: []
   };
 
-  const processBooking = (date) => new Promise((resolve, reject) => {
+  const processBookingForDate = (date) => new Promise((resolve, reject) => {
     db.serialize(() => {
-      db.run('BEGIN TRANSACTION');
+      db.run('BEGIN TRANSACTION', (err) => {
+        if (err) return reject(new Error(`Transaction begin failed: ${err.message}`));
+      });
 
       const checkQuery = `SELECT * FROM bookings WHERE venue = ? AND booking_date = ? AND NOT (? <= start_time OR ? >= end_time)`;
-      db.all(checkQuery, [venue, date, endTime, startTime], (err, rows) => {
+      db.get(checkQuery, [venue, date, endTime, startTime], (err, row) => {
         if (err) {
-          db.run('ROLLBACK');
-          return reject(new Error(err.message));
+          return db.run('ROLLBACK', () => reject(new Error(`Conflict check failed: ${err.message}`)));
         }
 
-        if (rows.length > 0) {
-          db.run('ROLLBACK');
-          return resolve({ date, success: false, message: '時間衝突' });
+        if (row) {
+          return db.run('ROLLBACK', () => resolve({ date, success: false, message: '時間衝突' }));
         }
-        
+
         const insertQuery = `INSERT INTO bookings (user_id, person_in_charge, venue, purpose, event_name, class_type, pax, remarks, booking_date, start_time, end_time, username) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-        const params = [
-          currentUser?.id || 'user-1',
-          personInCharge,
-          venue,
-          purpose,
-          eventName,
-          classType,
-          pax,
-          remarks,
-          date,
-          startTime,
-          endTime,
-          currentUser?.username || '測試用戶'
-        ];
-
+        const params = [currentUser?.id || 'user-1', personInCharge, venue, purpose, eventName, classType, pax, remarks, date, startTime, endTime, currentUser?.name || personInCharge];
+        
         db.run(insertQuery, params, function(err) {
           if (err) {
-            db.run('ROLLBACK');
-            return reject(new Error(err.message));
+            return db.run('ROLLBACK', () => reject(new Error(`Insert failed: ${err.message}`)));
           }
-          db.run('COMMIT');
-          resolve({ date, success: true, bookingId: this.lastID });
+          const lastID = this.lastID;
+          db.run('COMMIT', (commitErr) => {
+            if (commitErr) {
+              return reject(new Error(`Commit failed: ${commitErr.message}`));
+            }
+            resolve({ date, success: true, bookingId: lastID });
+          });
         });
       });
     });
   });
 
   try {
-    const allPromises = dates.map(date => processBooking(date));
-    const allResults = await Promise.all(allPromises);
-
-    allResults.forEach(result => {
+    for (const date of dates) {
+      const result = await processBookingForDate(date);
       if (result.success) {
         results.success.push(result);
       } else {
         results.failed.push(result);
       }
-    });
-
-    if (results.failed.length > 0) {
-      if (results.success.length > 0) {
-        // 部分成功
-        const failedDates = results.failed.map(f => f.date).join(', ');
-        return res.status(207).json({ 
-            success: false, 
-            message: `部分預約成功，但日期 ${failedDates} 因衝突或其他原因失敗。`, 
-            details: results 
-        });
-      } else {
-        // 全部失敗
-        return res.status(409).json({ success: false, message: '所有預約均因時間衝突而失敗。', details: results });
-      }
-    } else {
-      // 全部成功
-      res.status(201).json({ success: true, message: '所有預約均已成功建立！', details: results });
     }
 
+    if (results.failed.length > 0 && results.success.length === 0) {
+      return res.status(409).json({ success: false, message: '所有預約均因衝突而失敗。', details: results.failed });
+    } else if (results.failed.length > 0) {
+      return res.status(207).json({ success: true, message: '部分預約因衝突而失敗。', details: results });
+    } else {
+      return res.json({ success: true, message: '所有預約已成功創建！', details: results.success });
+    }
   } catch (error) {
-    res.status(500).json({ success: false, message: `伺服器內部錯誤: ${error.message}` });
+    console.error('預約處理失敗:', error);
+    return res.status(500).json({ success: false, message: `系統發生錯誤，預約失敗: ${error.message}` });
   }
 });
 
