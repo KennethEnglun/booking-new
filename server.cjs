@@ -393,12 +393,24 @@ app.post('/api/bookings/import', (req, res) => {
   const { bookings, mode } = req.body;
 
   if (!Array.isArray(bookings) || bookings.length === 0) {
-    return res.status(400).json({ error: '沒有提供有效的預約數據' });
+    return res.status(400).json({ message: '沒有提供有效的預約數據' });
+  }
+
+  // 數據驗證
+  for (let i = 0; i < bookings.length; i++) {
+    const booking = bookings[i];
+    const { booking_date, start_time, end_time, person_in_charge, venue } = booking;
+    if (!booking_date || !start_time || !end_time || !person_in_charge || !venue) {
+      return res.status(400).json({ 
+        message: `導入失敗：第 ${i + 2} 行數據不完整，請確保 'booking_date', 'start_time', 'end_time', 'person_in_charge', 'venue' 欄位都存在。`,
+        error: 'Incomplete data' 
+      });
+    }
   }
 
   db.serialize(() => {
     db.run('BEGIN TRANSACTION', (err) => {
-      if (err) return res.status(500).json({ error: '無法開始事務' });
+      if (err) return res.status(500).json({ message: '無法開始事務', error: err.message });
     });
 
     const runQuery = (query, params = []) => new Promise((resolve, reject) => {
@@ -418,20 +430,19 @@ app.post('/api/bookings/import', (req, res) => {
         const stmt = db.prepare(`INSERT INTO bookings (user_id, person_in_charge, venue, purpose, event_name, class_type, pax, remarks, booking_date, start_time, end_time, username) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
         
         for (const booking of bookings) {
-          // 確保所有欄位都有值，以避免 undefined
           const params = [
             booking.user_id || `imported-user-${Date.now()}`,
-            booking.person_in_charge || '',
-            booking.venue || '',
+            booking.person_in_charge,
+            booking.venue,
             booking.purpose || null,
             booking.event_name || null,
             booking.class_type || null,
             booking.pax || null,
             booking.remarks || null,
-            booking.booking_date || '',
-            booking.start_time || '',
-            booking.end_time || '',
-            booking.username || booking.person_in_charge || '導入用戶'
+            booking.booking_date,
+            booking.start_time,
+            booking.end_time,
+            booking.username || booking.person_in_charge
           ];
           await new Promise((resolve, reject) => {
             stmt.run(params, err => err ? reject(err) : resolve());
@@ -444,7 +455,7 @@ app.post('/api/bookings/import', (req, res) => {
       } catch (error) {
         console.error('導入預約時出錯:', error);
         await runQuery('ROLLBACK');
-        res.status(500).json({ error: '導入預約時發生錯誤' });
+        res.status(500).json({ message: `導入預約時發生資料庫錯誤: ${error.message}`, error: 'Database error' });
       }
     })();
   });

@@ -103,7 +103,7 @@ const ScheduleComponent = ({ isAdmin, config }) => {
         skipEmptyLines: true,
         complete: async (results) => {
           try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/import`, {
+            const response = await fetch('/api/bookings/import', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -114,14 +114,15 @@ const ScheduleComponent = ({ isAdmin, config }) => {
               }),
             });
             if (!response.ok) {
-              throw new Error('導入失敗');
+              const errorData = await response.json().catch(() => ({ message: '導入失敗，請檢查日誌' }));
+              throw new Error(errorData.message || '導入失敗');
             }
-            fetchBookings(); // Refresh bookings list
+            loadBookings(); // Refresh bookings list
             setShowSuccess(true);
             setTimeout(() => setShowSuccess(false), 3000);
           } catch (error) {
             console.error('導入CSV時出錯:', error);
-            setError('導入失敗，請檢查文件格式和後端服務。');
+            setError(`導入失敗: ${error.message}`);
           }
         },
         error: (error) => {
