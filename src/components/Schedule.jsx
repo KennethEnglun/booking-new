@@ -366,7 +366,7 @@ const ScheduleComponent = ({ isAdmin, config }) => {
                                 </td>
                               </tr>
                               {bookingsOnDate.map((booking) => (
-                                <tr key={booking.id} className={selectedBookings.has(booking.id) ? 'bg-blue-50 : ''}>
+                                <tr key={booking.id} className={selectedBookings.has(booking.id) ? 'bg-blue-50' : ''}>
                                   {isAdmin && (
                                     <td className="relative px-6 py-4 w-12">
                                       <input
