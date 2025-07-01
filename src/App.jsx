@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import BookingForm from "./components/BookingForm";
-import Schedule from "./components/Schedule";
+import { BookingFormComponent as BookingForm } from "./components/BookingForm";
+import { ScheduleComponent as Schedule } from "./components/Schedule";
 import { useAuth } from './context/AuthContext';
 import LoginModal from './components/LoginModal';
 
