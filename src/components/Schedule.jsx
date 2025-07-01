@@ -139,7 +139,7 @@ const ScheduleComponent = ({ isAdmin, config }) => {
       return;
     }
 
-    const headers = ["ID", "場地", "用途", "活動名稱", "班別", "人數", "備注", "負責人", "預約日期", "開始時間", "結束時間", "創建時間"];
+    const headers = ["id", "venue", "purpose", "event_name", "class_type", "pax", "remarks", "person_in_charge", "booking_date", "start_time", "end_time", "created_at"];
     const csvRows = [headers.join(',')];
 
     // 導出所有預約記錄
