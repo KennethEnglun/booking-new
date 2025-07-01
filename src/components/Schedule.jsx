@@ -17,6 +17,10 @@ const ScheduleComponent = ({ isAdmin, config }) => {
   // States for 'list' view
   const [filterVenue, setFilterVenue] = useState("");
   const [filterDate, setFilterDate] = useState("");
+  const [filterPurpose, setFilterPurpose] = useState("");
+  const [filterEventName, setFilterEventName] = useState("");
+  const [filterPersonInCharge, setFilterPersonInCharge] = useState("");
+  const [sortConfig, setSortConfig] = useState({ key: 'time', direction: 'ascending' });
   const [selectedBookings, setSelectedBookings] = useState(new Set());
 
   // State for 'grid' view
@@ -186,6 +190,14 @@ const ScheduleComponent = ({ isAdmin, config }) => {
     }
   };
 
+  const requestSort = (key) => {
+    let direction = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+
   const visibleBookings = useMemo(() => {
     if (isAdmin) return bookings;
     const today = dayjs().startOf('day');
@@ -196,20 +208,44 @@ const ScheduleComponent = ({ isAdmin, config }) => {
     return visibleBookings.filter((booking) => {
       const venueMatch = filterVenue ? booking.venue === filterVenue : true;
       const dateMatch = filterDate ? booking.booking_date === filterDate : true;
-      return venueMatch && dateMatch;
+      const purposeMatch = filterPurpose ? booking.purpose === filterPurpose : true;
+      const eventNameMatch = filterEventName ? booking.event_name === filterEventName : true;
+      const personInChargeMatch = filterPersonInCharge ? booking.person_in_charge === filterPersonInCharge : true;
+      return venueMatch && dateMatch && purposeMatch && eventNameMatch && personInChargeMatch;
     });
-  }, [visibleBookings, filterVenue, filterDate]);
+  }, [visibleBookings, filterVenue, filterDate, filterPurpose, filterEventName, filterPersonInCharge]);
 
   const groupedBookings = useMemo(() => {
-    return filteredBookings.reduce((acc, booking) => {
+    const grouped = filteredBookings.reduce((acc, booking) => {
       const date = booking.booking_date;
       if (!acc[date]) acc[date] = [];
       acc[date].push(booking);
       return acc;
     }, {});
-  }, [filteredBookings]);
+
+    // Sort bookings within each group
+    for (const date in grouped) {
+        grouped[date].sort((a, b) => {
+            if (sortConfig.key === 'time') {
+                const timeA = a.start_time;
+                const timeB = b.start_time;
+                if (sortConfig.direction === 'ascending') {
+                    return timeA.localeCompare(timeB);
+                } else {
+                    return timeB.localeCompare(timeA);
+                }
+            }
+            return 0;
+        });
+    }
+
+    return grouped;
+  }, [filteredBookings, sortConfig]);
 
   const uniqueDates = useMemo(() => [...new Set(visibleBookings.map(b => b.booking_date))].sort(), [visibleBookings]);
+  const uniquePurposes = useMemo(() => [...new Set(visibleBookings.map(b => b.purpose).filter(Boolean))].sort(), [visibleBookings]);
+  const uniqueEventNames = useMemo(() => [...new Set(visibleBookings.map(b => b.event_name).filter(Boolean))].sort(), [visibleBookings]);
+  const uniquePersonsInCharge = useMemo(() => [...new Set(visibleBookings.map(b => b.person_in_charge).filter(Boolean))].sort(), [visibleBookings]);
 
   const ViewModeButton = ({ mode, children }) => (
     <button
@@ -260,16 +296,31 @@ const ScheduleComponent = ({ isAdmin, config }) => {
             )}
             
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
               <select onChange={(e) => setFilterVenue(e.target.value)} value={filterVenue}
-                className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
                 <option value="">所有場地</option>
                 {venues.map(v => <option key={v} value={v}>{v}</option>)}
               </select>
               <select onChange={(e) => setFilterDate(e.target.value)} value={filterDate}
-                className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
                 <option value="">所有日期</option>
                 {uniqueDates.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+              <select onChange={(e) => setFilterPurpose(e.target.value)} value={filterPurpose}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                <option value="">所有用途</option>
+                {uniquePurposes.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <select onChange={(e) => setFilterEventName(e.target.value)} value={filterEventName}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                <option value="">所有活動名稱</option>
+                {uniqueEventNames.map(e => <option key={e} value={e}>{e}</option>)}
+              </select>
+              <select onChange={(e) => setFilterPersonInCharge(e.target.value)} value={filterPersonInCharge}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                <option value="">所有預約人</option>
+                {uniquePersonsInCharge.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
             
@@ -281,7 +332,16 @@ const ScheduleComponent = ({ isAdmin, config }) => {
                       <thead className="bg-gray-50 dark:bg-black/20">
                         <tr>
                           {isAdmin && <th scope="col" className="relative px-6 py-3 w-12"><input type="checkbox" onChange={handleSelectAll} checked={selectedBookings.size === bookings.length && bookings.length > 0} className="rounded" /></th>}
-                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">時間</th>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
+                            <button onClick={() => requestSort('time')} className="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400">
+                              時間
+                              {sortConfig.key === 'time' && (
+                                <span className="text-xs">
+                                  {sortConfig.direction === 'ascending' ? '▲' : '▼'}
+                                </span>
+                              )}
+                            </button>
+                          </th>
                           <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">場地</th>
                           <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">用途</th>
                           <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">活動名稱</th>
@@ -297,7 +357,7 @@ const ScheduleComponent = ({ isAdmin, config }) => {
                           Object.entries(groupedBookings).map(([date, bookingsOnDate]) => (
                             <React.Fragment key={date}>
                               <tr className="bg-gray-100 dark:bg-gray-800">
-                                <td colSpan={isAdmin ? 9 : 8} className="px-4 py-2 text-sm font-semibold text-gray-900 dark:text-gray-200">
+                                <td colSpan={isAdmin ? 10 : 8} className="px-4 py-2 text-sm font-semibold text-gray-900 dark:text-gray-200">
                                   {dayjs(date).format("YYYY年MM月DD日 (dddd)")}
                                 </td>
                               </tr>
@@ -334,7 +394,7 @@ const ScheduleComponent = ({ isAdmin, config }) => {
                           ))
                         ) : (
                           <tr>
-                            <td colSpan={isAdmin ? 9 : 8} className="text-center py-12">
+                            <td colSpan={isAdmin ? 10 : 8} className="text-center py-12">
                                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-200">沒有符合的預約記錄</h3>
                                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">請嘗試調整篩選條件或新增預約。</p>
                             </td>
