@@ -101,14 +101,11 @@ export const useBooking = ({ onBookingSuccess }) => {
     const debouncedCheckConflicts = useCallback(debounce(checkConflicts, conflictCheckDebounceMs), [checkConflicts]);
 
     const submitBooking = useCallback(async (bookingData) => {
-        const { venue, dates, startTime, endTime, purpose, personInCharge } = bookingData;
-
         setIsSubmitting(true);
         setError('');
         setSuccess('');
 
         try {
-            // 獲取用戶資訊
             const userResponse = await fetch('/api/user');
             const currentUser = await userResponse.json();
 
@@ -118,50 +115,38 @@ export const useBooking = ({ onBookingSuccess }) => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    venue,
-                    dates,
-                    startTime,
-                    endTime,
-                    purpose,
-                    personInCharge,
+                    ...bookingData,
                     currentUser
                 }),
             });
-
+            
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                const errorData = await response.json().catch(() => ({ message: '無法解析錯誤回應' }));
+                throw new Error(errorData.message || '預約請求失敗');
             }
 
             const data = await response.json();
-            const successfulBookings = data.results.filter(r => r.status === 'success');
-            const failedBookings = data.results.filter(r => r.status === 'failed');
 
-            let successMsg = '';
-            let errorMsg = '';
-
-            if (successfulBookings.length > 0) {
-                successMsg = `成功預約 ${successfulBookings.length} 天： ${successfulBookings.map(b => b.date).join(', ')}`;
+            if (data.success) {
+                setSuccess(data.message);
+                if (onBookingSuccess) {
+                    setTimeout(() => {
+                        onBookingSuccess();
+                        setSuccess('');
+                    }, 2000);
+                }
+            } else {
+                 const failedDates = data.details.filter(d => !d.success).map(d => `${d.date} (${d.message})`).join(', ');
+                 setError(`部分預約失敗: ${failedDates}`);
             }
-            if (failedBookings.length > 0) {
-                errorMsg = `有 ${failedBookings.length} 天預約失敗：\n${failedBookings.map(b => `${b.date} (${b.reason})`).join('\n')}`;
-            }
 
-            setSuccess(successMsg);
-            setError(errorMsg);
-
-            if (successfulBookings.length > 0) {
-                setTimeout(() => {
-                    setSuccess('');
-                    if (onBookingSuccess) onBookingSuccess();
-                }, successRedirectDelay);
-            }
         } catch (err) {
             console.error('Booking submission failed:', err);
-            setError('系統發生錯誤，預約失敗，請稍後再試。');
+            setError(`系統發生錯誤，預約失敗: ${err.message}`);
         } finally {
             setIsSubmitting(false);
         }
-    }, [onBookingSuccess, successRedirectDelay]);
+    }, [onBookingSuccess]);
     
     return {
         isSubmitting,
