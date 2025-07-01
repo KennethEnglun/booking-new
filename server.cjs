@@ -6,6 +6,7 @@ const dayjs = require('dayjs');
 const isSameOrBefore = require('dayjs/plugin/isSameOrBefore');
 const isSameOrAfter = require('dayjs/plugin/isSameOrAfter');
 const path = require('path');
+const fetch = require('node-fetch');
 
 // 載入 dayjs 插件
 dayjs.extend(isSameOrBefore);
@@ -78,9 +79,6 @@ db.serialize(() => {
 
 // AI 建議功能
 async function getAiSuggestions(venue, date, startTime, endTime, existingBookings) {
-  // 動態載入 node-fetch
-  const fetch = (await import('node-fetch')).default;
-
   // 計算預約時長
   const startMoment = dayjs(`${date} ${startTime}`);
   const endMoment = dayjs(`${date} ${endTime}`);
