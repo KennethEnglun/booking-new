@@ -2,9 +2,6 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import dayjs from "dayjs";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import { ScheduleGrid } from "./ScheduleGrid.jsx";
-import Papa from 'papaparse';
-import { useBooking } from '../hooks/useBooking';
-import { useAuth } from '../context/AuthContext.jsx';
 
 dayjs.extend(isSameOrAfter);
 
@@ -29,13 +26,7 @@ const ScheduleComponent = ({ isAdmin, config }) => {
   // State for 'grid' view
   const [gridDate, setGridDate] = useState('');
   
-  // States for CSV Import
-  const [csvFile, setCsvFile] = useState(null);
-  const [importMode, setImportMode] = useState('add'); // 'add' or 'overwrite'
-  const [isImporting, setIsImporting] = useState(false);
-  const [importMessage, setImportMessage] = useState({ type: '', text: '' });
 
-  const { currentUser } = useAuth();
 
   const sortedBookings = useMemo(() => 
     bookings.slice().sort((a, b) => dayjs(a.booking_date).diff(dayjs(b.booking_date))),
@@ -264,94 +255,28 @@ const ScheduleComponent = ({ isAdmin, config }) => {
       className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
         viewMode === mode
           ? 'bg-blue-600 text-white shadow-md'
-          : 'bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'
+          : 'bg-white text-gray-700 hover:bg-gray-100'
       }`}
     >
       {children}
     </button>
   );
 
-  const handleFileChange = (e) => {
-    setImportMessage({ type: '', text: '' });
-    const file = e.target.files[0];
-    if (file && file.type === "text/csv") {
-      setCsvFile(file);
-    } else {
-      setCsvFile(null);
-      setImportMessage({ type: 'error', text: '請上傳有效的 CSV 檔案。' });
-    }
-  };
 
-  const handleImport = () => {
-    if (!csvFile) {
-      setImportMessage({ type: 'error', text: '請先選擇一個檔案。' });
-      return;
-    }
-    setIsImporting(true);
-    setImportMessage({ type: '', text: '' });
 
-    Papa.parse(csvFile, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (results) => {
-        const requiredHeaders = ["venue", "purpose", "event_name", "class_type", "pax", "remarks", "person_in_charge", "booking_date", "start_time", "end_time"];
-        const headers = results.meta.fields;
-        const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
-
-        if (missingHeaders.length > 0) {
-          setImportMessage({ type: 'error', text: `CSV 缺少必要的欄位: ${missingHeaders.join(', ')}` });
-          setIsImporting(false);
-          return;
-        }
-
-        try {
-          const response = await fetch('/api/bookings/import', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              bookings: results.data,
-              mode: importMode,
-            }),
-          });
-
-          const data = await response.json();
-
-          if (response.ok) {
-            setImportMessage({ type: 'success', text: data.message });
-            fetchBookings(); // Refresh the booking list
-          } else {
-            setImportMessage({ type: 'error', text: data.message || '匯入失敗。' });
-          }
-        } catch (error) {
-          setImportMessage({ type: 'error', text: `客戶端錯誤: ${error.message}` });
-        } finally {
-          setIsImporting(false);
-          setCsvFile(null);
-          document.getElementById('csv-upload').value = '';
-        }
-      },
-      error: (error) => {
-        setImportMessage({ type: 'error', text: `CSV 解析錯誤: ${error.message}` });
-        setIsImporting(false);
-      }
-    });
-  };
-
-  if (loading) return <div className="p-8 text-center text-gray-500 dark:text-gray-400">讀取中...</div>;
-  if (error) return <div className="p-8 text-center text-red-500 dark:text-red-400">錯誤: {error}</div>;
+  if (loading) return <div className="p-8 text-center text-gray-500">讀取中...</div>;
+  if (error) return <div className="p-8 text-center text-red-500">錯誤: {error}</div>;
 
   return (
     <div className="animate-fadeInUp">
       {showSuccess && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-pulse dark:bg-green-600">
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-pulse">
            操作成功！
          </div>
       )}
-      <div className="bg-white dark:bg-gray-950 dark:border dark:border-gray-800 shadow-xl rounded-2xl p-6 md:p-10">
+      <div className="bg-white shadow-xl rounded-2xl p-6 md:p-10">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white mb-4 sm:mb-0">預約總覽</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-0">預約總覽</h2>
           <div className="flex items-center space-x-2">
             <ViewModeButton mode="list">列表視圖</ViewModeButton>
             <ViewModeButton mode="grid">表格視圖</ViewModeButton>
@@ -363,13 +288,13 @@ const ScheduleComponent = ({ isAdmin, config }) => {
           <div>
             {/* Admin Controls */}
             {isAdmin && (
-              <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700/50 rounded-lg">
-                <h3 className="font-semibold text-gray-700 dark:text-gray-200 mb-3">管理員操作</h3>
+              <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <h3 className="font-semibold text-gray-700 mb-3">管理員操作</h3>
                 <div className="flex flex-wrap items-center gap-2">
-                  <button onClick={handleSelectAll} className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors dark:hover:bg-blue-800">全選/取消</button>
-                  <button onClick={handleBatchDelete} disabled={selectedBookings.size === 0} className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:bg-gray-400 dark:disabled:bg-gray-600 dark:hover:bg-red-800">刪除選取</button>
-                  <button onClick={handleDeleteAll} className="px-3 py-1.5 text-sm bg-red-800 text-white rounded-md hover:bg-red-900 transition-colors dark:bg-red-900 dark:hover:bg-red-950">刪除全部</button>
-                  <button onClick={handleExportCsv} className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors dark:hover:bg-green-800">導出 CSV</button>
+                  <button onClick={handleSelectAll} className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">全選/取消</button>
+                  <button onClick={handleBatchDelete} disabled={selectedBookings.size === 0} className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:bg-gray-400">刪除選取</button>
+                  <button onClick={handleDeleteAll} className="px-3 py-1.5 text-sm bg-red-800 text-white rounded-md hover:bg-red-900 transition-colors">刪除全部</button>
+                  <button onClick={handleExportCsv} className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">導出 CSV</button>
                 </div>
               </div>
             )}
@@ -377,27 +302,27 @@ const ScheduleComponent = ({ isAdmin, config }) => {
             {/* Filters */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
               <select onChange={(e) => setFilterVenue(e.target.value)} value={filterVenue}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
                 <option value="">所有場地</option>
                 {venues.map(v => <option key={v} value={v}>{v}</option>)}
               </select>
               <select onChange={(e) => setFilterDate(e.target.value)} value={filterDate}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
                 <option value="">所有日期</option>
                 {uniqueDates.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
               <select onChange={(e) => setFilterPurpose(e.target.value)} value={filterPurpose}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
                 <option value="">所有用途</option>
                 {uniquePurposes.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
               <select onChange={(e) => setFilterEventName(e.target.value)} value={filterEventName}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
                 <option value="">所有活動名稱</option>
                 {uniqueEventNames.map(e => <option key={e} value={e}>{e}</option>)}
               </select>
               <select onChange={(e) => setFilterPersonInCharge(e.target.value)} value={filterPersonInCharge}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
                 <option value="">所有預約人</option>
                 {uniquePersonsInCharge.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
@@ -406,13 +331,13 @@ const ScheduleComponent = ({ isAdmin, config }) => {
             {/* Bookings List */}
             <div className="overflow-x-auto">
               <div className="min-w-full align-middle">
-                 <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg dark:ring-gray-700">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                      <thead className="bg-gray-50 dark:bg-black/20">
+                 <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
                         <tr>
                           {isAdmin && <th scope="col" className="relative px-6 py-3 w-12"><input type="checkbox" onChange={handleSelectAll} checked={selectedBookings.size === bookings.length && bookings.length > 0} className="rounded" /></th>}
-                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
-                            <button onClick={() => requestSort('time')} className="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400">
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                            <button onClick={() => requestSort('time')} className="flex items-center gap-1 hover:text-blue-600">
                               時間
                               {sortConfig.key === 'time' && (
                                 <span className="text-xs">
@@ -421,27 +346,27 @@ const ScheduleComponent = ({ isAdmin, config }) => {
                               )}
                             </button>
                           </th>
-                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">場地</th>
-                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">用途</th>
-                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">活動名稱</th>
-                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">班別</th>
-                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">人數</th>
-                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">備注</th>
-                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">預約人</th>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">場地</th>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">用途</th>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">活動名稱</th>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">班別</th>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">人數</th>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">備注</th>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">預約人</th>
                           {isAdmin && <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6"><span className="sr-only">刪除</span></th>}
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-gray-900">
+                      <tbody className="divide-y divide-gray-200 bg-white">
                         {Object.keys(groupedBookings).length > 0 ? (
                           Object.entries(groupedBookings).map(([date, bookingsOnDate]) => (
                             <React.Fragment key={date}>
-                              <tr className="bg-gray-100 dark:bg-gray-800">
-                                <td colSpan={isAdmin ? 10 : 8} className="px-4 py-2 text-sm font-semibold text-gray-900 dark:text-gray-200">
+                              <tr className="bg-gray-100">
+                                <td colSpan={isAdmin ? 10 : 8} className="px-4 py-2 text-sm font-semibold text-gray-900">
                                   {dayjs(date).format("YYYY年MM月DD日 (dddd)")}
                                 </td>
                               </tr>
                               {bookingsOnDate.map((booking) => (
-                                <tr key={booking.id} className={selectedBookings.has(booking.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}>
+                                <tr key={booking.id} className={selectedBookings.has(booking.id) ? 'bg-blue-50 : ''}>
                                   {isAdmin && (
                                     <td className="relative px-6 py-4 w-12">
                                       <input
@@ -452,17 +377,17 @@ const ScheduleComponent = ({ isAdmin, config }) => {
                                       />
                                     </td>
                                   )}
-                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.start_time} - {booking.end_time}</td>
-                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.venue}</td>
-                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.purpose}</td>
-                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.event_name}</td>
-                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.class_type}</td>
-                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.pax}</td>
-                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.remarks}</td>
-                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">{booking.person_in_charge}</td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{booking.start_time} - {booking.end_time}</td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{booking.venue}</td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{booking.purpose}</td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{booking.event_name}</td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{booking.class_type}</td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{booking.pax}</td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{booking.remarks}</td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{booking.person_in_charge}</td>
                                   {isAdmin && (
                                     <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                                      <button onClick={() => handleDelete(booking.id)} className="text-red-600 hover:text-red-900 dark:text-red-500 dark:hover:text-red-400">
+                                      <button onClick={() => handleDelete(booking.id)} className="text-red-600 hover:text-red-900">
                                         刪除
                                       </button>
                                     </td>
@@ -474,8 +399,8 @@ const ScheduleComponent = ({ isAdmin, config }) => {
                         ) : (
                           <tr>
                             <td colSpan={isAdmin ? 10 : 8} className="text-center py-12">
-                               <h3 className="text-lg font-medium text-gray-900 dark:text-gray-200">沒有符合的預約記錄</h3>
-                               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">請嘗試調整篩選條件或新增預約。</p>
+                               <h3 className="text-lg font-medium text-gray-900">沒有符合的預約記錄</h3>
+                               <p className="mt-1 text-sm text-gray-500">請嘗試調整篩選條件或新增預約。</p>
                             </td>
                           </tr>
                         )}
@@ -491,13 +416,13 @@ const ScheduleComponent = ({ isAdmin, config }) => {
         {viewMode === 'grid' && (
           <div>
             <div className="flex flex-col sm:flex-row items-center gap-4 mb-4">
-              <label htmlFor="grid-date-select" className="text-sm font-medium text-gray-700 dark:text-gray-300">選擇日期</label>
+              <label htmlFor="grid-date-select" className="text-sm font-medium text-gray-700">選擇日期</label>
               <input 
                 type="date"
                 id="grid-date-select"
                 value={gridDate}
                 onChange={e => setGridDate(e.target.value)}
-                className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
             <ScheduleGrid 
@@ -508,76 +433,7 @@ const ScheduleComponent = ({ isAdmin, config }) => {
           </div>
         )}
       </div>
-      
-      {/* Admin Section for CSV Import */}
-      {currentUser && currentUser.isAdmin && (
-        <div id="admin-panel" className="mt-8 p-6 bg-gray-900 rounded-xl shadow-2xl border border-gray-800">
-          <h2 className="text-2xl font-bold text-white mb-6">管理員功能</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-200 mb-3">匯入 CSV 預約紀錄</h3>
-              <div className="flex items-center space-x-4">
-                <input
-                  type="file"
-                  id="csv-upload"
-                  accept=".csv"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-                <label
-                  htmlFor="csv-upload"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 transition-colors"
-                >
-                  Choose File
-                </label>
-                <span className="text-gray-400">{csvFile ? csvFile.name : 'No file selected'}</span>
-              </div>
-              <p className="text-xs text-gray-500 mt-2">
-                必需包含欄位: venue, purpose, event_name, class_type, pax, remarks, person_in_charge, booking_date, start_time, end_time
-              </p>
-            </div>
-            
-            <div className="flex flex-col justify-center">
-               <h3 className="text-lg font-semibold text-gray-200 mb-3">匯入模式</h3>
-              <div className="flex items-center space-x-6">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="import-mode"
-                    value="add"
-                    checked={importMode === 'add'}
-                    onChange={() => setImportMode('add')}
-                    className="form-radio h-5 w-5 text-blue-500 bg-gray-700 border-gray-600 focus:ring-blue-500"
-                  />
-                  <span className="text-gray-200">添加</span>
-                </label>
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="import-mode"
-                    value="overwrite"
-                    checked={importMode === 'overwrite'}
-                    onChange={() => setImportMode('overwrite')}
-                    className="form-radio h-5 w-5 text-red-500 bg-gray-700 border-gray-600 focus:ring-red-500"
-                  />
-                  <span className="text-gray-200">覆蓋</span>
-                </label>
-              </div>
-               <p className="text-xs text-gray-500 mt-1">"覆蓋"將會刪除所有現有預約。</p>
-            </div>
-          </div>
 
-          <div className="mt-6 text-right">
-            <button
-              onClick={handleImport}
-              className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed"
-              disabled={!csvFile || isImporting}
-            >
-              {isImporting ? '匯入中...' : '開始匯入'}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
