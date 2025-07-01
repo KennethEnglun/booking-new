@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import dayjs from "dayjs";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import { ScheduleGrid } from "./ScheduleGrid.jsx";
+import Papa from 'papaparse';
 
 dayjs.extend(isSameOrAfter);
 
@@ -13,6 +14,7 @@ const ScheduleComponent = ({ isAdmin, config }) => {
   const [showSuccess, setShowSuccess] = useState(false);
   
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
+  const [importMode, setImportMode] = useState('add'); // 'add' or 'overwrite'
   
   // States for 'list' view
   const [filterVenue, setFilterVenue] = useState("");
@@ -24,7 +26,7 @@ const ScheduleComponent = ({ isAdmin, config }) => {
   const [selectedBookings, setSelectedBookings] = useState(new Set());
 
   // State for 'grid' view
-  const [gridDate, setGridDate] = useState('');
+  const [gridDate, setGridDate] = useState(dayjs().format('YYYY-MM-DD'));
   
 
 
@@ -90,6 +92,43 @@ const ScheduleComponent = ({ isAdmin, config }) => {
         console.error("Failed to delete booking:", error);
         alert("刪除失敗，發生網路錯誤。");
       }
+    }
+  };
+
+  const handleImportCsv = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: async (results) => {
+          try {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/import`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                bookings: results.data,
+                mode: importMode,
+              }),
+            });
+            if (!response.ok) {
+              throw new Error('導入失敗');
+            }
+            fetchBookings(); // Refresh bookings list
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 3000);
+          } catch (error) {
+            console.error('導入CSV時出錯:', error);
+            setError('導入失敗，請檢查文件格式和後端服務。');
+          }
+        },
+        error: (error) => {
+          console.error('解析CSV時出錯:', error);
+          setError('解析CSV失敗，請檢查文件格式。');
+        },
+      });
     }
   };
 
@@ -295,6 +334,21 @@ const ScheduleComponent = ({ isAdmin, config }) => {
                   <button onClick={handleBatchDelete} disabled={selectedBookings.size === 0} className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:bg-gray-400">刪除選取</button>
                   <button onClick={handleDeleteAll} className="px-3 py-1.5 text-sm bg-red-800 text-white rounded-md hover:bg-red-900 transition-colors">刪除全部</button>
                   <button onClick={handleExportCsv} className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">導出 CSV</button>
+                  <label htmlFor="csv-importer" className="cursor-pointer px-3 py-1.5 text-sm bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors">
+                    導入 CSV
+                  </label>
+                  <input type="file" id="csv-importer" accept=".csv" onChange={handleImportCsv} className="hidden" />
+                </div>
+                <div className="mt-2 flex items-center gap-4">
+                  <span className="text-sm font-medium text-gray-600">導入模式:</span>
+                  <label className="flex items-center gap-1">
+                    <input type="radio" name="importMode" value="add" checked={importMode === 'add'} onChange={() => setImportMode('add')} className="form-radio h-4 w-4 text-blue-600" />
+                    <span className="text-sm">增加</span>
+                  </label>
+                  <label className="flex items-center gap-1">
+                    <input type="radio" name="importMode" value="overwrite" checked={importMode === 'overwrite'} onChange={() => setImportMode('overwrite')} className="form-radio h-4 w-4 text-red-600" />
+                    <span className="text-sm">覆蓋</span>
+                  </label>
                 </div>
               </div>
             )}
