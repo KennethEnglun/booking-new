@@ -373,6 +373,102 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
+app.post('/api/bookings/import', async (req, res) => {
+  const { bookings, mode } = req.body;
+
+  if (!bookings || !Array.isArray(bookings)) {
+    return res.status(400).json({ message: '無效的預約資料。' });
+  }
+
+  if (mode === 'overwrite') {
+    db.serialize(() => {
+      db.run('BEGIN TRANSACTION', (err) => {
+        if (err) return res.status(500).json({ message: `開始事務失敗: ${err.message}` });
+        
+        db.run('DELETE FROM bookings', (err) => {
+          if (err) {
+            return db.run('ROLLBACK', () => res.status(500).json({ message: `刪除舊預約失敗: ${err.message}` }));
+          }
+          
+          db.run("DELETE FROM sqlite_sequence WHERE name='bookings'", (err) => {
+            if (err) {
+              return db.run('ROLLBACK', () => res.status(500).json({ message: `重設 ID 失敗: ${err.message}` }));
+            }
+            
+            const stmt = db.prepare(`INSERT INTO bookings (user_id, person_in_charge, venue, purpose, event_name, class_type, pax, remarks, booking_date, start_time, end_time, username) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+            
+            for (const b of bookings) {
+              const username = b.username || b.person_in_charge;
+              stmt.run('user-import', b.person_in_charge, b.venue, b.purpose, b.event_name, b.class_type, b.pax, b.remarks, b.booking_date, b.start_time, b.end_time, username);
+            }
+            
+            stmt.finalize((err) => {
+              if (err) {
+                return db.run('ROLLBACK', () => res.status(500).json({ message: `匯入預約時發生錯誤: ${err.message}` }));
+              }
+              
+              db.run('COMMIT', (err) => {
+                if (err) {
+                  return res.status(500).json({ message: `提交事務失敗: ${err.message}` });
+                }
+                res.status(201).json({ message: `成功覆蓋並匯入 ${bookings.length} 筆預約。` });
+              });
+            });
+          });
+        });
+      });
+    });
+  } else { // 'add' mode
+    const results = { success: [], failed: [] };
+    
+    // We can reuse the function from the single booking endpoint, but we need to adapt it.
+    // For simplicity here, we create a similar sequential promise chain.
+    const processSingleBooking = (booking) => new Promise((resolve) => {
+       const { venue, booking_date, start_time, end_time, person_in_charge, purpose, event_name, class_type, pax, remarks, username } = booking;
+       const checkQuery = `SELECT * FROM bookings WHERE venue = ? AND booking_date = ? AND NOT (? <= start_time OR ? >= end_time)`;
+       
+       db.get(checkQuery, [venue, booking_date, end_time, start_time], (err, row) => {
+         if (err || row) {
+           resolve({ ...booking, success: false, message: err ? err.message : '時間衝突' });
+         } else {
+           const insertQuery = `INSERT INTO bookings (user_id, person_in_charge, venue, purpose, event_name, class_type, pax, remarks, booking_date, start_time, end_time, username) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+           const effectiveUsername = username || person_in_charge;
+           const params = ['user-import', person_in_charge, venue, purpose, event_name, class_type, pax, remarks, booking_date, start_time, end_time, effectiveUsername];
+           
+           db.run(insertQuery, params, function(err) {
+             if (err) {
+               resolve({ ...booking, success: false, message: err.message });
+             } else {
+               resolve({ ...booking, success: true, bookingId: this.lastID });
+             }
+           });
+         }
+       });
+    });
+
+    (async () => {
+      for (const booking of bookings) {
+        const result = await processSingleBooking(booking);
+        if (result.success) {
+          results.success.push(result);
+        } else {
+          results.failed.push(result);
+        }
+      }
+      
+      res.status(207).json({ 
+        message: `匯入完成。成功 ${results.success.length} 筆，失敗 ${results.failed.length} 筆。`,
+        details: results 
+      });
+    })();
+  }
+});
+
+// 檢查特定時段是否可預約
+app.post('/api/check-availability', (req, res) => {
+  // ... existing code ...
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 }); 

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import dayjs from "dayjs";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import { ScheduleGrid } from "./ScheduleGrid.jsx";
+import Papa from 'papaparse';
+import { useBooking } from '../hooks/useBooking';
 
 dayjs.extend(isSameOrAfter);
 
@@ -25,6 +27,12 @@ const ScheduleComponent = ({ isAdmin, config }) => {
 
   // State for 'grid' view
   const [gridDate, setGridDate] = useState('');
+  
+  // States for CSV Import
+  const [csvFile, setCsvFile] = useState(null);
+  const [importMode, setImportMode] = useState('add'); // 'add' or 'overwrite'
+  const [isImporting, setIsImporting] = useState(false);
+  const [importMessage, setImportMessage] = useState({ type: '', text: '' });
 
   const sortedBookings = useMemo(() => 
     bookings.slice().sort((a, b) => dayjs(a.booking_date).diff(dayjs(b.booking_date))),
@@ -260,6 +268,74 @@ const ScheduleComponent = ({ isAdmin, config }) => {
     </button>
   );
 
+  const handleFileChange = (e) => {
+    setImportMessage({ type: '', text: '' });
+    const file = e.target.files[0];
+    if (file && file.type === "text/csv") {
+      setCsvFile(file);
+    } else {
+      setCsvFile(null);
+      setImportMessage({ type: 'error', text: '請上傳有效的 CSV 檔案。' });
+    }
+  };
+
+  const handleImport = () => {
+    if (!csvFile) {
+      setImportMessage({ type: 'error', text: '請先選擇一個檔案。' });
+      return;
+    }
+    setIsImporting(true);
+    setImportMessage({ type: '', text: '' });
+
+    Papa.parse(csvFile, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        const requiredHeaders = ["venue", "purpose", "event_name", "class_type", "pax", "remarks", "person_in_charge", "booking_date", "start_time", "end_time"];
+        const headers = results.meta.fields;
+        const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+
+        if (missingHeaders.length > 0) {
+          setImportMessage({ type: 'error', text: `CSV 缺少必要的欄位: ${missingHeaders.join(', ')}` });
+          setIsImporting(false);
+          return;
+        }
+
+        try {
+          const response = await fetch('/api/bookings/import', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              bookings: results.data,
+              mode: importMode,
+            }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            setImportMessage({ type: 'success', text: data.message });
+            fetchBookings(); // Refresh the booking list
+          } else {
+            setImportMessage({ type: 'error', text: data.message || '匯入失敗。' });
+          }
+        } catch (error) {
+          setImportMessage({ type: 'error', text: `客戶端錯誤: ${error.message}` });
+        } finally {
+          setIsImporting(false);
+          setCsvFile(null);
+          document.getElementById('csv-upload').value = '';
+        }
+      },
+      error: (error) => {
+        setImportMessage({ type: 'error', text: `CSV 解析錯誤: ${error.message}` });
+        setIsImporting(false);
+      }
+    });
+  };
+
   if (loading) return <div className="p-8 text-center text-gray-500 dark:text-gray-400">讀取中...</div>;
   if (error) return <div className="p-8 text-center text-red-500 dark:text-red-400">錯誤: {error}</div>;
 
@@ -426,6 +502,68 @@ const ScheduleComponent = ({ isAdmin, config }) => {
               bookings={bookings.filter(b => b.booking_date === gridDate)}
               venues={venues} 
             />
+          </div>
+        )}
+      </div>
+      
+      {/* Admin Section for CSV Import */}
+      <div className="mt-6 bg-gray-950/50 dark:bg-gray-950 shadow-2xl rounded-2xl p-4 sm:p-6 backdrop-blur-md">
+        <h3 className="text-xl font-semibold text-white mb-4 border-b border-gray-700 pb-2">管理員功能</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label htmlFor="csv-upload" className="block text-sm font-medium text-gray-300 mb-2">
+              匯入 CSV 預約記錄
+            </label>
+            <input
+              id="csv-upload"
+              type="file"
+              accept=".csv"
+              onChange={handleFileChange}
+              className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 transition"
+            />
+             <p className="mt-1 text-xs text-gray-500">必需包含欄位: venue, purpose, event_name, class_type, pax, remarks, person_in_charge, booking_date, start_time, end_time</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">匯入模式</label>
+            <div className="flex items-center space-x-4">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="importMode"
+                  value="add"
+                  checked={importMode === 'add'}
+                  onChange={() => setImportMode('add')}
+                  className="form-radio h-4 w-4 text-blue-600 bg-gray-800 border-gray-600 focus:ring-blue-500"
+                />
+                <span className="ml-2 text-sm text-gray-300">添加</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="importMode"
+                  value="overwrite"
+                  checked={importMode === 'overwrite'}
+                  onChange={() => setImportMode('overwrite')}
+                  className="form-radio h-4 w-4 text-blue-600 bg-gray-800 border-gray-600 focus:ring-blue-500"
+                />
+                <span className="ml-2 text-sm text-gray-300">覆蓋</span>
+              </label>
+            </div>
+             <p className="mt-1 text-xs text-gray-500">"覆蓋"將會刪除所有現存預約。</p>
+          </div>
+        </div>
+        <div className="mt-4 flex items-center justify-end">
+           <button
+            onClick={handleImport}
+            disabled={!csvFile || isImporting}
+            className="inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            {isImporting ? '匯入中...' : '開始匯入'}
+          </button>
+        </div>
+        {importMessage.text && (
+          <div className={`mt-4 text-sm p-3 rounded-md ${importMessage.type === 'success' ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}>
+            {importMessage.text}
           </div>
         )}
       </div>
