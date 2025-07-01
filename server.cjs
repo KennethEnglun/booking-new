@@ -7,6 +7,7 @@ const isSameOrBefore = require('dayjs/plugin/isSameOrBefore');
 const isSameOrAfter = require('dayjs/plugin/isSameOrAfter');
 const path = require('path');
 const fetch = require('node-fetch');
+const cookieParser = require('cookie-parser');
 
 // 載入 dayjs 插件
 dayjs.extend(isSameOrBefore);
@@ -18,6 +19,7 @@ const PORT = process.env.PORT || 3001;
 // 中間件
 app.use(cors());
 app.use(bodyParser.json());
+app.use(cookieParser('your-secret-key')); // Use a secret key for signed cookies
 app.use(express.static(path.join(__dirname, 'dist')));
 
 // 配置
@@ -76,6 +78,11 @@ db.serialize(() => {
   });
   stmt.finalize();
 });
+
+// Mock user database
+const users = {
+  admin: { id: 'admin-01', name: 'Admin', isAdmin: true, password: 'adminpassword' }
+};
 
 // AI 建議功能
 async function getAiSuggestions(venue, date, startTime, endTime, existingBookings) {
@@ -182,7 +189,13 @@ function generateFallbackSuggestions(startTime, endTime, durationMinutes, existi
 
 // 獲取用戶資訊
 app.get('/api/user', (req, res) => {
-  res.json({ id: 'user-1', username: '測試用戶' });
+  const { userId } = req.signedCookies;
+  if (userId && users[userId]) {
+    const { id, name, isAdmin } = users[userId];
+    res.json({ id, name, isAdmin });
+  } else {
+    res.status(401).json({ message: 'Not authenticated' });
+  }
 });
 
 // 檢查衝突
@@ -244,7 +257,9 @@ app.post('/api/check-conflicts', (req, res) => {
 
 // 創建預約
 app.post('/api/bookings', async (req, res) => {
-  const { venue, dates, startTime, endTime, purpose, personInCharge, eventName, classType, pax, remarks, currentUser } = req.body;
+  const { venue, dates, startTime, endTime, purpose, personInCharge, eventName, classType, pax, remarks } = req.body;
+  const { userId } = req.signedCookies;
+  const currentUser = userId ? users[userId] : null;
 
   if (!dates || !Array.isArray(dates) || dates.length === 0) {
     return res.status(400).json({ success: false, message: '請提供有效的預約日期陣列。' });
@@ -375,6 +390,11 @@ app.get('*', (req, res) => {
 
 app.post('/api/bookings/import', async (req, res) => {
   const { bookings, mode } = req.body;
+  const { userId } = req.signedCookies;
+  
+  if (!userId || !users[userId] || !users[userId].isAdmin) {
+    return res.status(403).json({ message: '權限不足，只有管理員才能匯入資料。' });
+  }
 
   if (!bookings || !Array.isArray(bookings)) {
     return res.status(400).json({ message: '無效的預約資料。' });
@@ -466,7 +486,24 @@ app.post('/api/bookings/import', async (req, res) => {
 
 // 檢查特定時段是否可預約
 app.post('/api/check-availability', (req, res) => {
+  const { venue, dates, startTime, endTime } = req.body;
   // ... existing code ...
+});
+
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+  if (users[username] && users[username].password === password) {
+    res.cookie('userId', username, { signed: true, httpOnly: true, maxAge: 24 * 60 * 60 * 1000 }); // 1 day
+    const { id, name, isAdmin } = users[username];
+    res.json({ id, name, isAdmin });
+  } else {
+    res.status(401).json({ message: '帳號或密碼錯誤' });
+  }
+});
+
+app.post('/api/logout', (req, res) => {
+  res.clearCookie('userId');
+  res.json({ message: '登出成功' });
 });
 
 app.listen(PORT, () => {

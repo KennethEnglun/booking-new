@@ -4,6 +4,7 @@ import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import { ScheduleGrid } from "./ScheduleGrid.jsx";
 import Papa from 'papaparse';
 import { useBooking } from '../hooks/useBooking';
+import { useAuth } from '../context/AuthContext.jsx';
 
 dayjs.extend(isSameOrAfter);
 
@@ -33,6 +34,8 @@ const ScheduleComponent = ({ isAdmin, config }) => {
   const [importMode, setImportMode] = useState('add'); // 'add' or 'overwrite'
   const [isImporting, setIsImporting] = useState(false);
   const [importMessage, setImportMessage] = useState({ type: '', text: '' });
+
+  const { currentUser } = useAuth();
 
   const sortedBookings = useMemo(() => 
     bookings.slice().sort((a, b) => dayjs(a.booking_date).diff(dayjs(b.booking_date))),
@@ -507,66 +510,74 @@ const ScheduleComponent = ({ isAdmin, config }) => {
       </div>
       
       {/* Admin Section for CSV Import */}
-      <div className="mt-6 bg-gray-950/50 dark:bg-gray-950 shadow-2xl rounded-2xl p-4 sm:p-6 backdrop-blur-md">
-        <h3 className="text-xl font-semibold text-white mb-4 border-b border-gray-700 pb-2">管理員功能</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label htmlFor="csv-upload" className="block text-sm font-medium text-gray-300 mb-2">
-              匯入 CSV 預約記錄
-            </label>
-            <input
-              id="csv-upload"
-              type="file"
-              accept=".csv"
-              onChange={handleFileChange}
-              className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 transition"
-            />
-             <p className="mt-1 text-xs text-gray-500">必需包含欄位: venue, purpose, event_name, class_type, pax, remarks, person_in_charge, booking_date, start_time, end_time</p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">匯入模式</label>
-            <div className="flex items-center space-x-4">
-              <label className="flex items-center">
+      {currentUser && currentUser.isAdmin && (
+        <div id="admin-panel" className="mt-8 p-6 bg-gray-900 rounded-xl shadow-2xl border border-gray-800">
+          <h2 className="text-2xl font-bold text-white mb-6">管理員功能</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-200 mb-3">匯入 CSV 預約紀錄</h3>
+              <div className="flex items-center space-x-4">
                 <input
-                  type="radio"
-                  name="importMode"
-                  value="add"
-                  checked={importMode === 'add'}
-                  onChange={() => setImportMode('add')}
-                  className="form-radio h-4 w-4 text-blue-600 bg-gray-800 border-gray-600 focus:ring-blue-500"
+                  type="file"
+                  id="csv-upload"
+                  accept=".csv"
+                  onChange={handleFileChange}
+                  className="hidden"
                 />
-                <span className="ml-2 text-sm text-gray-300">添加</span>
-              </label>
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="importMode"
-                  value="overwrite"
-                  checked={importMode === 'overwrite'}
-                  onChange={() => setImportMode('overwrite')}
-                  className="form-radio h-4 w-4 text-blue-600 bg-gray-800 border-gray-600 focus:ring-blue-500"
-                />
-                <span className="ml-2 text-sm text-gray-300">覆蓋</span>
-              </label>
+                <label
+                  htmlFor="csv-upload"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 transition-colors"
+                >
+                  Choose File
+                </label>
+                <span className="text-gray-400">{csvFile ? csvFile.name : 'No file selected'}</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                必需包含欄位: venue, purpose, event_name, class_type, pax, remarks, person_in_charge, booking_date, start_time, end_time
+              </p>
             </div>
-             <p className="mt-1 text-xs text-gray-500">"覆蓋"將會刪除所有現存預約。</p>
+            
+            <div className="flex flex-col justify-center">
+               <h3 className="text-lg font-semibold text-gray-200 mb-3">匯入模式</h3>
+              <div className="flex items-center space-x-6">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="import-mode"
+                    value="add"
+                    checked={importMode === 'add'}
+                    onChange={() => setImportMode('add')}
+                    className="form-radio h-5 w-5 text-blue-500 bg-gray-700 border-gray-600 focus:ring-blue-500"
+                  />
+                  <span className="text-gray-200">添加</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="import-mode"
+                    value="overwrite"
+                    checked={importMode === 'overwrite'}
+                    onChange={() => setImportMode('overwrite')}
+                    className="form-radio h-5 w-5 text-red-500 bg-gray-700 border-gray-600 focus:ring-red-500"
+                  />
+                  <span className="text-gray-200">覆蓋</span>
+                </label>
+              </div>
+               <p className="text-xs text-gray-500 mt-1">"覆蓋"將會刪除所有現有預約。</p>
+            </div>
+          </div>
+
+          <div className="mt-6 text-right">
+            <button
+              onClick={handleImport}
+              className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed"
+              disabled={!csvFile || isImporting}
+            >
+              {isImporting ? '匯入中...' : '開始匯入'}
+            </button>
           </div>
         </div>
-        <div className="mt-4 flex items-center justify-end">
-           <button
-            onClick={handleImport}
-            disabled={!csvFile || isImporting}
-            className="inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            {isImporting ? '匯入中...' : '開始匯入'}
-          </button>
-        </div>
-        {importMessage.text && (
-          <div className={`mt-4 text-sm p-3 rounded-md ${importMessage.type === 'success' ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}>
-            {importMessage.text}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
