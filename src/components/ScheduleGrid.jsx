@@ -62,20 +62,20 @@ const ScheduleGridComponent = ({ bookings, venues }) => {
                 {time}
               </td>
               {venues.map(venue => {
-                const booking = bookingMap.get(`${venue}-${time}`);
+        const booking = bookingMap.get(`${venue}-${time}`);
                 if (!booking) {
-                    let isSpanned = false;
-                    for (const b of bookings) {
-                        if (b.venue === venue) {
-                            const startTime = dayjs(`${b.booking_date} ${b.start_time}`);
-                            const endTime = dayjs(`${b.booking_date} ${b.end_time}`);
-                            const currentTime = dayjs(`${b.booking_date} ${time}`);
-                            if (currentTime.isAfter(startTime) && currentTime.isBefore(endTime)) {
-                                isSpanned = true;
-                                break;
-                            }
-                        }
-                    }
+        let isSpanned = false;
+        for (const b of bookings) {
+          if (b.venue === venue) {
+            const startTime = dayjs(`${b.booking_date} ${b.start_time}`);
+            const endTime = dayjs(`${b.booking_date} ${b.end_time}`);
+            const currentTime = dayjs(`${b.booking_date} ${time}`);
+            if (currentTime.isAfter(startTime) && currentTime.isBefore(endTime)) {
+              isSpanned = true;
+              break;
+            }
+          }
+        }
                     return isSpanned ? null : <td key={venue} className={`h-16 ${timeIndex % 2 === 0 ? 'bg-gray-50/50' : ''}`}></td>;
                 }
                 

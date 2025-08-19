@@ -118,8 +118,8 @@ export const useBooking = ({ onBookingSuccess }) => {
                     ...bookingData,
                     currentUser
                 }),
-            });
-            
+                });
+
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ message: '無法解析錯誤回應' }));
                 throw new Error(errorData.message || '預約請求失敗');
@@ -130,9 +130,9 @@ export const useBooking = ({ onBookingSuccess }) => {
             if (data.success) {
                 setSuccess(data.message);
                 if (onBookingSuccess) {
-                    setTimeout(() => {
+                setTimeout(() => {
                         onBookingSuccess();
-                        setSuccess('');
+                    setSuccess('');
                     }, 2000);
                 }
             } else {

@@ -347,7 +347,7 @@ app.get('/api/bookings', (req, res) => {
   }
 
   query += " ORDER BY booking_date ASC, start_time ASC";
-
+  
   db.all(query, params, (err, bookings) => {
     if (err) {
       console.error(err);
