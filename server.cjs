@@ -25,7 +25,7 @@ app.use(express.static(path.join(__dirname, 'dist')));
 // 配置
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || "sk-c47eb9db749e4d0da072557681f52e83";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "512524";
-const AVAILABLE_VENUES = ['101', '102', '103', '104', '201', '202', '203', '204', '301', '302', '303', '304', 'STEM Room', '音樂室', '活動室', '英語室', '圖書館', '煮角', 'G01電競室', '輔導室', 'G02', 'G03', '禮堂', '操場', '壁球室', '攀石牆'];
+const AVAILABLE_VENUES = ['101', '102', '103', '104', '201', '202', '203', '204', '301', '302', '303', '304', 'STEM Room', '音樂室', '活動室', '英語室', '圖書館', '煮角', 'G01電競室', '輔導室', 'G02', '禮堂', '操場', '壁球室', '攀石牆'];
 
 // 初始化資料庫
 const db = new sqlite3.Database(':memory:');
