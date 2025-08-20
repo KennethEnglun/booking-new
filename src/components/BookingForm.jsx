@@ -25,6 +25,8 @@ const BookingFormComponent = ({ onBookingSuccess, config }) => {
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringStartDate, setRecurringStartDate] = useState(dayjs().format("YYYY-MM-DD"));
   const [recurringEndDate, setRecurringEndDate] = useState(dayjs().add(4, 'week').format("YYYY-MM-DD"));
+  const [isCustomInterval, setIsCustomInterval] = useState(false);
+  const [customInterval, setCustomInterval] = useState(7);
   
   const personInChargePlaceholder = "請輸入負責人姓名";
   const purposePlaceholder = "請填寫其他用途";
@@ -37,6 +39,11 @@ const BookingFormComponent = ({ onBookingSuccess, config }) => {
     "課後托管",
     "加強輔導",
     "IEP",
+    "Freetime",
+    "功課時段",
+    "全方位學習",
+    "學生成長",
+    "學科活動",
     "其他"
   ];
   const {
@@ -116,7 +123,7 @@ const BookingFormComponent = ({ onBookingSuccess, config }) => {
     }
   };
 
-  const generateWeeklyDates = () => {
+  const generateRecurringDates = () => {
     const start = dayjs(recurringStartDate);
     const end = dayjs(recurringEndDate);
     if (!start.isValid() || !end.isValid() || start.isAfter(end)) {
@@ -124,11 +131,17 @@ const BookingFormComponent = ({ onBookingSuccess, config }) => {
       return;
     }
 
+    if (isCustomInterval && (!customInterval || customInterval < 1)) {
+      setSubmitError("請輸入有效的間隔天數（至少1天）。");
+      return;
+    }
+
+    const intervalDays = isCustomInterval ? customInterval : 7;
     const newDates = [];
     let current = start;
     while (current.isSameOrBefore(end)) {
       newDates.push(current.format("YYYY-MM-DD"));
-      current = current.add(7, 'day');
+      current = current.add(intervalDays, 'day');
     }
     
     if (newDates.length > 20) {
@@ -203,12 +216,20 @@ const BookingFormComponent = ({ onBookingSuccess, config }) => {
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">預約日期 *</label>
               <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 space-y-4">
-                <div className="flex items-center">
-                    <input type="checkbox" id="isRecurring" checked={isRecurring} onChange={(e) => setIsRecurring(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600" />
-                    <label htmlFor="isRecurring" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">啟用每週重複預約</label>
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                      <input type="checkbox" id="isRecurring" checked={isRecurring} onChange={(e) => setIsRecurring(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600" />
+                      <label htmlFor="isRecurring" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">啟用每週重複預約</label>
+                  </div>
+                  <div className="flex items-center">
+                      <input type="checkbox" id="isCustomInterval" checked={isCustomInterval} onChange={(e) => setIsCustomInterval(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600" />
+                      <label htmlFor="isCustomInterval" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">啟用隔</label>
+                      <input type="number" value={customInterval} onChange={(e) => setCustomInterval(parseInt(e.target.value) || 1)} min="1" max="365" disabled={!isCustomInterval} className="mx-2 w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-white disabled:dark:bg-gray-800" />
+                      <span className="text-sm text-gray-900 dark:text-gray-300">天重複預約</span>
+                  </div>
                 </div>
 
-                {isRecurring ? (
+                {(isRecurring || isCustomInterval) ? (
                   <div className="p-4 bg-gray-100 dark:bg-black/20 rounded-lg space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
@@ -220,7 +241,7 @@ const BookingFormComponent = ({ onBookingSuccess, config }) => {
                               <input type="date" value={recurringEndDate} onChange={e => setRecurringEndDate(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600" />
                           </div>
                       </div>
-                      <button type="button" onClick={generateWeeklyDates} className="w-full px-4 py-2 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 transition-colors">產生重複日期</button>
+                      <button type="button" onClick={generateRecurringDates} className="w-full px-4 py-2 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 transition-colors">產生重複日期</button>
                       <p className="text-xs text-gray-500 dark:text-gray-400">注意：這將會覆蓋下方所有已選的日期。</p>
                   </div>
                 ) : (
@@ -231,7 +252,7 @@ const BookingFormComponent = ({ onBookingSuccess, config }) => {
                     onRemoveDate={handleRemoveDate}
                   />
                 )}
-                 {isRecurring && (
+                 {(isRecurring || isCustomInterval) && (
                    <div>
                       <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">已產生的日期 ({dates.length}天):</h4>
                       <div className="flex flex-wrap gap-2">
