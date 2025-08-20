@@ -89,6 +89,9 @@ const ScheduleGridComponent = ({ bookings, venues }) => {
                      <div className={`p-2 rounded-lg text-white h-full flex flex-col justify-between shadow-md ${getBookingColor(booking.purpose)}`}>
                       <div>
                         <p className="font-bold text-sm text-gray-100">{booking.purpose}</p>
+                        {booking.event_name && (
+                          <p className="text-xs opacity-90 text-gray-200 font-medium">{booking.event_name}</p>
+                        )}
                         <p className="text-xs opacity-90 text-gray-200">{booking.start_time} - {booking.end_time}</p>
                       </div>
                       <p className="text-xs font-medium text-right truncate text-gray-300" title={booking.person_in_charge}>{booking.person_in_charge}</p>
